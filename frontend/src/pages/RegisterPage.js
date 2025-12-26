@@ -79,9 +79,18 @@ function RegisterPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-6 shadow-lg">
-              <span className="text-5xl">🌞</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Pet Daylight" 
+              className="w-24 h-24 object-contain drop-shadow-2xl mx-auto mb-6"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg mx-auto mb-6';
+                fallback.innerHTML = '<span class="text-5xl">🌞</span>';
+                e.target.parentElement.appendChild(fallback);
+              }}
+            />
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Pet Daylight</h1>
             <p className="text-base text-gray-600">함께 반려동물을 지켜주세요</p>
           </div>

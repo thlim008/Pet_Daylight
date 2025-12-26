@@ -5,6 +5,14 @@ from django.db import models
 class User(AbstractUser):
     """사용자 모델"""
     
+    # 닉네임 (한글 가능)
+    nickname = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="표시용 닉네임 (한글 가능)"
+    )
+    
     # 위치 정보 (지도/거리 기반 필터링용)
     latitude = models.DecimalField(
         max_digits=9, 
@@ -34,7 +42,7 @@ class User(AbstractUser):
     # 프로필 정보
     phone_number = models.CharField(
         max_length=20,
-        null=True,   # 이 부분이 추가되어야 소셜 로그인이 터지지 않습니다.
+        null=True,
         blank=True,
         help_text="연락처"
     )
@@ -42,7 +50,15 @@ class User(AbstractUser):
         upload_to='profiles/',
         null=True,
         blank=True,
-        help_text="프로필 사진"
+        help_text="프로필 사진 (업로드)"
+    )
+    
+    # 소셜 로그인 프로필 이미지 URL
+    profile_image_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="소셜 로그인 프로필 이미지 URL"
     )
     
     # 추가 정보
@@ -55,4 +71,16 @@ class User(AbstractUser):
         verbose_name_plural = '사용자 목록'
     
     def __str__(self):
-        return self.username
+        return self.nickname or self.username
+    
+    @property
+    def display_name(self):
+        """화면에 표시할 이름"""
+        return self.nickname or self.username
+    
+    @property
+    def display_image(self):
+        """화면에 표시할 이미지"""
+        if self.profile_image:
+            return self.profile_image.url
+        return self.profile_image_url

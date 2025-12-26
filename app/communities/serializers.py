@@ -1,59 +1,59 @@
 from rest_framework import serializers
-from .models import Community, CommunityComment
+from .models import Community, CommunityComment, CommunityLike
 from app.accounts.serializers import UserSimpleSerializer
 
 
 class CommunityCommentSerializer(serializers.ModelSerializer):
     """커뮤니티 댓글 Serializer"""
     user = UserSimpleSerializer(read_only=True)
-    user_id = serializers.IntegerField(write_only=True, required=False)
     
     class Meta:
         model = CommunityComment
         fields = [
-            'id', 'community', 'user', 'user_id',
+            'id', 'community', 'user',
             'content', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def create(self, validated_data):
-        user = self.context['request'].user
-        validated_data['user'] = user
-        validated_data.pop('user_id', None)
-        return super().create(validated_data)
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
 
 class CommunitySerializer(serializers.ModelSerializer):
     """커뮤니티 게시글 Serializer"""
     user = UserSimpleSerializer(read_only=True)
-    user_id = serializers.IntegerField(write_only=True, required=False)
     comments = CommunityCommentSerializer(many=True, read_only=True)
     comment_count = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
     
     class Meta:
         model = Community
         fields = [
-            'id', 'user', 'user_id', 'category',
+            'id', 'user', 'category',
             'title', 'content', 'images',
-            'views', 'likes', 'comments', 'comment_count',
+            'views', 'likes', 'is_liked',
+            'comments', 'comment_count',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'views', 'likes', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'views', 'created_at', 'updated_at']
     
     def get_comment_count(self, obj):
         return obj.comments.count()
     
-    def create(self, validated_data):
-        user = self.context['request'].user
-        validated_data['user'] = user
-        validated_data.pop('user_id', None)
-        return super().create(validated_data)
+    def get_likes(self, obj):
+        return obj.user_likes.count()
+    
+    def get_is_liked(self, obj):
+        """현재 사용자가 좋아요 눌렀는지"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.user_likes.filter(user=request.user).exists()
+        return False
 
 
 class CommunityListSerializer(serializers.ModelSerializer):
     """커뮤니티 리스트용 Serializer (간단 버전)"""
     user = UserSimpleSerializer(read_only=True)
     comment_count = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
     
     class Meta:
@@ -66,6 +66,9 @@ class CommunityListSerializer(serializers.ModelSerializer):
     
     def get_comment_count(self, obj):
         return obj.comments.count()
+    
+    def get_likes(self, obj):
+        return obj.user_likes.count()
     
     def get_thumbnail(self, obj):
         """첫 번째 이미지만 반환"""

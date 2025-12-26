@@ -1,6 +1,6 @@
 """
-accounts/views.py
-사용자 인증 관련 ViewSet
+accounts/views.py - 완성본
+기존 파일을 이것으로 완전히 교체하세요!
 """
 
 from rest_framework import status, viewsets
@@ -15,6 +15,9 @@ from .serializers import (
     UserSerializer,
     UserRegistrationSerializer,
     UserUpdateSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordChangeSerializer,
 )
 
 
@@ -25,6 +28,7 @@ class UserViewSet(viewsets.ModelViewSet):
     - 내 정보 조회
     - 위치 업데이트
     - 알림 설정 업데이트
+    - 비밀번호 재설정 (신규 추가)
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -32,10 +36,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """
         액션별 권한 설정
-        - create, login: 인증 불필요
+        - create, login, password_reset_*: 인증 불필요
         - 나머지: 인증 필요
         """
-        if self.action in ['create', 'login']:
+        if self.action in ['create', 'login', 'password_reset_request', 'password_reset_confirm']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -45,6 +49,12 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserRegistrationSerializer
         elif self.action in ['update', 'partial_update']:
             return UserUpdateSerializer
+        elif self.action == 'password_reset_request':
+            return PasswordResetRequestSerializer
+        elif self.action == 'password_reset_confirm':
+            return PasswordResetConfirmSerializer
+        elif self.action == 'password_change':
+            return PasswordChangeSerializer
         return UserSerializer
 
     # ==========================================
@@ -236,3 +246,105 @@ class UserViewSet(viewsets.ModelViewSet):
                 'user': UserSerializer(user).data
             }
         )
+
+    # ==========================================
+    # 비밀번호 재설정 요청 (이메일 발송) - 🔥 신규
+    # ==========================================
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def password_reset_request(self, request):
+        """
+        비밀번호 재설정 요청 (이메일로 링크 발송)
+        POST /api/accounts/password_reset_request/
+        
+        Request Body:
+        {
+            "email": "user@example.com"
+        }
+        
+        Response:
+        {
+            "message": "비밀번호 재설정 이메일이 발송되었습니다.",
+            "email": "user@example.com"
+        }
+        """
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    'message': '비밀번호 재설정 이메일이 발송되었습니다.',
+                    'email': serializer.validated_data['email']
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ==========================================
+    # 비밀번호 재설정 확인 (새 비밀번호 설정) - 🔥 신규
+    # ==========================================
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def password_reset_confirm(self, request):
+        """
+        비밀번호 재설정 확인 (새 비밀번호 설정)
+        POST /api/accounts/password_reset_confirm/
+        
+        Request Body:
+        {
+            "uid": "MQ",
+            "token": "bhqo8g-...",
+            "new_password": "newpassword123",
+            "new_password_confirm": "newpassword123"
+        }
+        
+        Response:
+        {
+            "message": "비밀번호가 성공적으로 변경되었습니다."
+        }
+        """
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {'message': '비밀번호가 성공적으로 변경되었습니다.'},
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ==========================================
+    # 비밀번호 변경 (로그인 상태) - 🔥 신규
+    # ==========================================
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def password_change(self, request):
+        """
+        비밀번호 변경 (로그인된 사용자)
+        POST /api/accounts/password_change/
+        
+        Request Body:
+        {
+            "current_password": "oldpassword",
+            "new_password": "newpassword123",
+            "new_password_confirm": "newpassword123"
+        }
+        
+        Response:
+        {
+            "message": "비밀번호가 변경되었습니다."
+        }
+        """
+        serializer = PasswordChangeSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {'message': '비밀번호가 변경되었습니다.'},
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

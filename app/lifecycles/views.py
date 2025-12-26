@@ -2,11 +2,13 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from .models import LifecycleGuide, Pet
+from django.utils import timezone
+from .models import LifecycleGuide, Pet, UserChecklistProgress
 from .serializers import (
     LifecycleGuideSerializer,
     PetSerializer,
-    PetListSerializer
+    PetListSerializer,
+    UserChecklistProgressSerializer
 )
 
 
@@ -15,24 +17,29 @@ class LifecycleGuideViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LifecycleGuide.objects.all()
     serializer_class = LifecycleGuideSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    ordering = ['order']
+    ordering = ['species', 'order']
     
     def get_queryset(self):
         """필터링된 queryset 반환"""
         queryset = LifecycleGuide.objects.all()
+        
+        # 종류별 필터 (dog, cat, other)
+        species = self.request.query_params.get('species', None)
+        if species:
+            queryset = queryset.filter(species=species)
         
         # 단계별 필터
         stage = self.request.query_params.get('stage', None)
         if stage:
             queryset = queryset.filter(stage=stage)
         
-        return queryset.order_by('order')
+        return queryset.order_by('species', 'order')
     
     @action(detail=False, methods=['get'])
     def stages(self, request):
         """
         생애주기 단계 목록
-        GET /api/lifecycles/stages/
+        GET /api/lifecycles/guides/stages/
         """
         stages = [
             {'value': 'adoption', 'label': '입양 준비'},
@@ -42,6 +49,62 @@ class LifecycleGuideViewSet(viewsets.ReadOnlyModelViewSet):
             {'value': 'farewell', 'label': '이별/장례'},
         ]
         return Response(stages)
+    
+    @action(detail=False, methods=['get'])
+    def species_list(self, request):
+        """
+        반려동물 종류 목록
+        GET /api/lifecycles/guides/species_list/
+        """
+        species = [
+            {'value': 'dog', 'label': '강아지', 'emoji': '🐕'},
+            {'value': 'cat', 'label': '고양이', 'emoji': '🐱'},
+            {'value': 'other', 'label': '기타', 'emoji': '🐾'},
+        ]
+        return Response(species)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def toggle_checklist(self, request, pk=None):
+        """
+        체크리스트 항목 토글 (완료/미완료)
+        POST /api/lifecycles/guides/{id}/toggle_checklist/
+        Body: { "checklist_item": "항목 내용" }
+        """
+        guide = self.get_object()
+        checklist_item = request.data.get('checklist_item')
+        
+        if not checklist_item:
+            return Response(
+                {'error': 'checklist_item이 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 해당 항목이 가이드의 checklist에 있는지 확인
+        if checklist_item not in guide.checklist:
+            return Response(
+                {'error': '유효하지 않은 체크리스트 항목입니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 기존 진행상황 조회 또는 생성
+        progress, created = UserChecklistProgress.objects.get_or_create(
+            user=request.user,
+            guide=guide,
+            checklist_item=checklist_item,
+            defaults={'is_completed': True, 'completed_at': timezone.now()}
+        )
+        
+        # 이미 있으면 토글
+        if not created:
+            progress.is_completed = not progress.is_completed
+            progress.completed_at = timezone.now() if progress.is_completed else None
+            progress.save()
+        
+        return Response({
+            'checklist_item': checklist_item,
+            'is_completed': progress.is_completed,
+            'completed_at': progress.completed_at
+        })
 
 
 class PetViewSet(viewsets.ModelViewSet):

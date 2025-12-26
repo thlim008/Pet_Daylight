@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from datetime import datetime, time
 
 
 class Hospital(models.Model):
@@ -50,11 +51,24 @@ class Hospital(models.Model):
         help_text="전화번호"
     )
     
+    # 카카오맵 연동
+    kakao_place_id = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="카카오맵 장소 ID (중복 방지용)"
+    )
+    
     # 운영 정보
+    is_24_hours = models.BooleanField(
+        default=False,
+        help_text="24시간 운영 여부"
+    )
     opening_hours = models.JSONField(
         default=dict,
         blank=True,
-        help_text="영업시간 (JSON)"
+        help_text="영업시간 (JSON) - 예: {'월': '09:00-18:00', '화': '09:00-18:00'}"
     )
     
     # 서비스 정보
@@ -104,6 +118,8 @@ class Hospital(models.Model):
         indexes = [
             models.Index(fields=['type', '-rating']),
             models.Index(fields=['latitude', 'longitude']),
+            models.Index(fields=['is_24_hours']),
+            models.Index(fields=['kakao_place_id']),  # 카카오맵 ID 검색용
         ]
     
     def __str__(self):
@@ -116,6 +132,42 @@ class Hospital(models.Model):
             self.rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
             self.review_count = reviews.count()
             self.save(update_fields=['rating', 'review_count'])
+    
+    def is_open_now(self):
+        """현재 진료 중인지 확인"""
+        if self.is_24_hours:
+            return True
+        
+        if not self.opening_hours:
+            return False
+        
+        now = datetime.now()
+        weekday_names = ['월', '화', '수', '목', '금', '토', '일']
+        current_day = weekday_names[now.weekday()]
+        
+        # 오늘의 영업시간 확인
+        today_hours = self.opening_hours.get(current_day, '')
+        
+        if not today_hours or today_hours.lower() in ['휴무', 'closed', '-']:
+            return False
+        
+        try:
+            # "09:00-18:00" 형태의 시간을 파싱
+            if '-' in today_hours:
+                open_time_str, close_time_str = today_hours.split('-')
+                open_time = datetime.strptime(open_time_str.strip(), '%H:%M').time()
+                close_time = datetime.strptime(close_time_str.strip(), '%H:%M').time()
+                current_time = now.time()
+                
+                # 자정을 넘기는 경우 처리 (예: 22:00-02:00)
+                if close_time < open_time:
+                    return current_time >= open_time or current_time <= close_time
+                else:
+                    return open_time <= current_time <= close_time
+        except (ValueError, AttributeError):
+            return False
+        
+        return False
 
 
 class HospitalVisit(models.Model):

@@ -11,6 +11,6 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = [
             'id', 'user', 'type', 'title', 'message',
-            'missing_pet', 'data', 'is_read', 'created_at'
+            'missing_pet', 'is_read', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']

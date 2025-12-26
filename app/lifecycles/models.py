@@ -13,10 +13,21 @@ class LifecycleGuide(models.Model):
         ('farewell', '이별/장례'),
     ]
     
+    SPECIES_CHOICES = [
+        ('dog', '강아지'),
+        ('cat', '고양이'),
+        ('other', '기타'),
+    ]
+    
+    species = models.CharField(
+        max_length=10,
+        choices=SPECIES_CHOICES,
+        default='dog',
+        help_text="반려동물 종류"
+    )
     stage = models.CharField(
         max_length=20,
         choices=STAGE_CHOICES,
-        unique=True,
         help_text="생애주기 단계"
     )
     title = models.CharField(
@@ -57,10 +68,57 @@ class LifecycleGuide(models.Model):
         db_table = 'lifecycle_guides'
         verbose_name = '생애주기 가이드'
         verbose_name_plural = '생애주기 가이드 목록'
-        ordering = ['order']
+        ordering = ['species', 'order']
+        # species와 stage 조합을 unique로
+        unique_together = [['species', 'stage']]
     
     def __str__(self):
-        return f"{self.get_stage_display()}: {self.title}"
+        return f"[{self.get_species_display()}] {self.get_stage_display()}: {self.title}"
+
+
+class UserChecklistProgress(models.Model):
+    """사용자의 체크리스트 완료 상태"""
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='checklist_progress',
+        help_text="사용자"
+    )
+    guide = models.ForeignKey(
+        LifecycleGuide,
+        on_delete=models.CASCADE,
+        related_name='user_progress',
+        help_text="가이드"
+    )
+    checklist_item = models.CharField(
+        max_length=500,
+        help_text="체크리스트 항목 내용"
+    )
+    is_completed = models.BooleanField(
+        default=False,
+        help_text="완료 여부"
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="완료 시간"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'user_checklist_progress'
+        verbose_name = '사용자 체크리스트 진행상황'
+        verbose_name_plural = '사용자 체크리스트 진행상황 목록'
+        # 사용자 + 가이드 + 항목 조합은 unique
+        unique_together = [['user', 'guide', 'checklist_item']]
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        status = "✓" if self.is_completed else "○"
+        return f"{status} {self.user.username} - {self.guide.title} - {self.checklist_item[:30]}"
 
 
 class Pet(models.Model):
@@ -103,6 +161,15 @@ class Pet(models.Model):
         choices=GENDER_CHOICES,
         default='unknown',
         help_text="성별"
+    )
+    is_neutered = models.BooleanField(
+        default=False,
+        help_text="중성화 여부"
+    )
+    neutered_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="중성화 수술일"
     )
     birth_date = models.DateField(
         null=True,

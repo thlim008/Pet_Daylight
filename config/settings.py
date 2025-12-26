@@ -334,3 +334,26 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+# 개발 환경: 콘솔에 이메일 출력 (실제 발송 안 함)
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#DEFAULT_FROM_EMAIL = 'Pet Daylight <noreply@petdaylight.com>'
+#
+## 비밀번호 재설정 링크 유효 시간 (초 단위, 기본 24시간)
+#PASSWORD_RESET_TIMEOUT = 86400  # 24시간
+
+# ==========================================
+# 이메일 설정 (개발 환경 - 콘솔 출력)
+# ==========================================
+
+# 🔥 개발 환경: 실제 이메일 발송 대신 콘솔(터미널)에 출력
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'Pet Daylight <noreply@petdaylight.com>'
+
+# 비밀번호 재설정 링크 유효 시간 (초 단위, 기본 24시간)
+PASSWORD_RESET_TIMEOUT = 86400  # 24시간
+
+# ==========================================
+# 프론트엔드 URL (QR코드용)
+# ==========================================
+FRONTEND_URL = 'http://localhost:3000'  # 개발 환경
+# FRONTEND_URL = 'https://yourdomain.com'  # 배포 시 변경

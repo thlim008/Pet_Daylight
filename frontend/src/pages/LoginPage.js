@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 
@@ -8,61 +8,136 @@ function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 컴포넌트 마운트 시 localStorage에서 에러 복원
+  useEffect(() => {
+    const savedError = localStorage.getItem('login_error');
+    if (savedError) {
+      setError(savedError);
+      console.log('💾 저장된 에러 복원:', savedError);
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const clearError = () => {
     setError('');
+    localStorage.removeItem('login_error');
+    console.log('🗑️ 에러 삭제됨');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    
     try {
+      console.log('🔐 로그인 시도:', { username: formData.username });
+      
       const res = await authAPI.login(formData);
+      
+      console.log('✅ 로그인 성공!');
+      
       localStorage.setItem('access_token', res.data.tokens.access);
       localStorage.setItem('refresh_token', res.data.tokens.refresh);
       localStorage.setItem('user', JSON.stringify(res.data.user));
+      
+      clearError(); // 성공 시 에러 삭제
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || '아이디 또는 비밀번호를 확인해주세요.');
+      console.error('❌ 로그인 실패:', err);
+      console.error('❌ 에러 응답:', err.response?.data);
+      
+      let errorMessage = '로그인에 실패했습니다.';
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        } else if (errorData.non_field_errors) {
+          errorMessage = Array.isArray(errorData.non_field_errors) 
+            ? errorData.non_field_errors[0] 
+            : errorData.non_field_errors;
+        } else if (errorData.username || errorData.password) {
+          const messages = [];
+          if (errorData.username) messages.push(`아이디: ${errorData.username[0] || errorData.username}`);
+          if (errorData.password) messages.push(`비밀번호: ${errorData.password[0] || errorData.password}`);
+          errorMessage = messages.join('\n');
+        } else {
+          errorMessage = '아이디 또는 비밀번호를 확인해주세요.';
+        }
+      }
+      
+      console.log('🔴 에러 메시지:', errorMessage);
+      
+      // localStorage에 저장!
+      localStorage.setItem('login_error', errorMessage);
+      setError(errorMessage);
+      
+      console.log('💾 에러를 localStorage에 저장함');
     } finally {
       setLoading(false);
     }
   };
 
-  // 소셜 로그인 핸들러
   const handleSocialLogin = (provider) => {
+    clearError(); // 소셜 로그인 시도 시 에러 삭제
+    console.log(`🔑 ${provider} 소셜 로그인`);
     window.location.href = `http://localhost:8000/accounts/${provider}/login/`;
   };
 
   return (
     <div className="min-h-screen bg-[#FAFAF9] flex flex-col">
-      {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          {/* Logo Section */}
           <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-6 shadow-lg">
-              <span className="text-5xl">🌞</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Pet Daylight
-            </h1>
-            <p className="text-base text-gray-600">
-              어둠 속의 제보부터 일상의 기록까지
-            </p>
+            <img 
+              src="/logo.png" 
+              alt="Pet Daylight" 
+              className="w-24 h-24 object-contain drop-shadow-2xl mx-auto mb-6"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg mx-auto mb-6';
+                fallback.innerHTML = '<span class="text-5xl">🌞</span>';
+                e.target.parentElement.appendChild(fallback);
+              }}
+            />
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Pet Daylight</h1>
+            <p className="text-base text-gray-600">어둠 속의 제보부터 일상의 기록까지</p>
           </div>
 
-          {/* Error */}
+          {/* 에러 박스 - localStorage 기반 */}
           {error && (
-            <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-6 p-5 rounded-2xl bg-red-50 border-2 border-red-400 shadow-lg animate-pulse-once">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-red-900 mb-2">로그인 실패</h3>
+                  <p className="text-sm text-red-800 whitespace-pre-line font-medium leading-relaxed">
+                    {error}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearError}
+                  className="flex-shrink-0 text-red-600 hover:text-red-800 hover:bg-red-100 transition-all p-2 rounded-lg"
+                  title="닫기"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* 소셜 로그인 버튼들 */}
           <div className="space-y-3 mb-8">
-            {/* 카카오 로그인 */}
             <button
               onClick={() => handleSocialLogin('kakao')}
               className="w-full py-3.5 bg-[#FEE500] text-[#000000] rounded-xl font-medium hover:bg-[#FDD835] transition-all flex items-center justify-center space-x-2"
@@ -73,7 +148,6 @@ function LoginPage() {
               <span>카카오로 계속하기</span>
             </button>
 
-            {/* 네이버 로그인 */}
             <button
               onClick={() => handleSocialLogin('naver')}
               className="w-full py-3.5 bg-[#03C75A] text-white rounded-xl font-medium hover:bg-[#02B350] transition-all flex items-center justify-center space-x-2"
@@ -84,7 +158,6 @@ function LoginPage() {
               <span>네이버로 계속하기</span>
             </button>
 
-            {/* 구글 로그인 */}
             <button
               onClick={() => handleSocialLogin('google')}
               className="w-full py-3.5 bg-white border-2 border-gray-200 text-gray-900 rounded-xl font-medium hover:bg-gray-50 transition-all flex items-center justify-center space-x-2"
@@ -99,7 +172,6 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* 구분선 */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
@@ -109,32 +181,39 @@ function LoginPage() {
             </div>
           </div>
 
-          {/* 일반 로그인 폼 */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                아이디
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">아이디</label>
               <input
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
                 required
+                autoComplete="username"
                 className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 placeholder="아이디를 입력하세요"
               />
             </div>
 
+            {/* 🔥 비밀번호 필드 - 비밀번호 찾기 링크 추가 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                비밀번호
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">비밀번호</label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/password-reset')}
+                  className="text-xs text-gray-600 hover:text-gray-900 hover:underline"
+                >
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
               <input
                 name="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
+                autoComplete="current-password"
                 className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 placeholder="비밀번호를 입력하세요"
               />
@@ -149,14 +228,10 @@ function LoginPage() {
             </button>
           </form>
 
-          {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
               계정이 없으신가요?{' '}
-              <button
-                onClick={() => navigate('/register')}
-                className="text-gray-900 font-medium hover:underline"
-              >
+              <button onClick={() => navigate('/register')} className="text-gray-900 font-medium hover:underline">
                 회원가입
               </button>
             </p>

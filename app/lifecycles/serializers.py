@@ -1,19 +1,48 @@
 from rest_framework import serializers
-from .models import LifecycleGuide, Pet
+from .models import LifecycleGuide, Pet, UserChecklistProgress
 from app.accounts.serializers import UserSimpleSerializer
+
+
+class UserChecklistProgressSerializer(serializers.ModelSerializer):
+    """사용자 체크리스트 진행상황 Serializer"""
+    
+    class Meta:
+        model = UserChecklistProgress
+        fields = [
+            'id', 'guide', 'checklist_item', 
+            'is_completed', 'completed_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class LifecycleGuideSerializer(serializers.ModelSerializer):
     """생애주기 가이드 Serializer"""
+    checklist_progress = serializers.SerializerMethodField()
     
     class Meta:
         model = LifecycleGuide
         fields = [
-            'id', 'stage', 'title', 'description',
-            'content', 'checklist', 'image', 'order',
+            'id', 'species', 'stage', 'title', 'description',
+            'content', 'checklist', 'checklist_progress', 'image', 'order',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_checklist_progress(self, obj):
+        """현재 사용자의 체크리스트 완료 상태"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return {}
+        
+        # 해당 가이드의 사용자 진행상황 조회
+        progress = UserChecklistProgress.objects.filter(
+            user=request.user,
+            guide=obj
+        ).values_list('checklist_item', 'is_completed')
+        
+        # {항목: 완료여부} 딕셔너리로 변환
+        return dict(progress)
 
 
 class PetSerializer(serializers.ModelSerializer):
@@ -26,7 +55,8 @@ class PetSerializer(serializers.ModelSerializer):
         model = Pet
         fields = [
             'id', 'user', 'user_id', 'name', 'species', 'breed',
-            'gender', 'birth_date', 'adoption_date', 'weight',
+            'gender', 'is_neutered', 'neutered_date',
+            'birth_date', 'adoption_date', 'weight',
             'profile_image', 'notes', 'is_active', 'age_in_years',
             'created_at', 'updated_at'
         ]
@@ -46,6 +76,8 @@ class PetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pet
         fields = [
-            'id', 'name', 'species', 'breed',
-            'profile_image', 'age_in_years', 'is_active'
+            'id', 'name', 'species', 'breed', 'gender',
+            'is_neutered', 'neutered_date',
+            'birth_date', 'adoption_date', 'weight',
+            'profile_image', 'notes', 'age_in_years', 'is_active'
         ]

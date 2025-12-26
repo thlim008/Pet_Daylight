@@ -40,7 +40,97 @@ class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
         if price_range:
             queryset = queryset.filter(price_range=price_range)
         
+        # 24시간 운영 필터
+        is_24_hours = self.request.query_params.get('is_24_hours', None)
+        if is_24_hours is not None:
+            is_24_hours_bool = is_24_hours.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(is_24_hours=is_24_hours_bool)
+        
+        # 현재 진료중 필터
+        is_open_now = self.request.query_params.get('is_open_now', None)
+        if is_open_now is not None and is_open_now.lower() in ['true', '1', 'yes']:
+            # Python 측에서 필터링 (DB 쿼리로는 복잡함)
+            open_hospitals = [h.id for h in queryset if h.is_open_now()]
+            queryset = queryset.filter(id__in=open_hospitals)
+        
         return queryset
+    
+    @action(detail=False, methods=['post'], url_path='create-from-kakao')
+    def create_from_kakao(self, request):
+        """
+        카카오맵 데이터로 자동으로 Hospital 생성
+        
+        POST /api/hospitals/create-from-kakao/
+        
+        요청 데이터:
+        {
+            "kakao_id": "26876033",
+            "name": "반려동물병원",
+            "type": "hospital",  // or "grooming"
+            "address": "대전 유성구 관들1길 54",
+            "phone": "0502-5553-5353",
+            "latitude": "36.4183552",
+            "longitude": "127.3823232",
+            "category": "의료,건강 > 동물병원",
+            "place_url": "http://place.map.kakao.com/26876033"
+        }
+        
+        응답:
+        {
+            "hospital_id": 123,
+            "created": true  // or false (이미 존재하는 경우)
+        }
+        """
+        kakao_id = request.data.get('kakao_id')
+        
+        if not kakao_id:
+            return Response(
+                {'error': 'kakao_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 이미 존재하는지 확인 (kakao_place_id로)
+        existing = Hospital.objects.filter(kakao_place_id=kakao_id).first()
+        if existing:
+            return Response({
+                'message': 'Hospital already exists',
+                'hospital_id': existing.id,
+                'created': False
+            }, status=status.HTTP_200_OK)
+        
+        # 새 Hospital 생성
+        hospital_data = {
+            'kakao_place_id': kakao_id,
+            'name': request.data.get('name'),
+            'type': request.data.get('type', 'hospital'),
+            'address': request.data.get('address'),
+            'phone': request.data.get('phone', ''),
+            'latitude': request.data.get('latitude'),
+            'longitude': request.data.get('longitude'),
+            'description': '',
+            'website': request.data.get('place_url', ''),
+            'is_24_hours': False,  # 카카오맵 데이터에는 없으므로 기본값
+            'opening_hours': {},   # 나중에 수동으로 추가
+            'services': [],        # 나중에 수동으로 추가
+            'price_range': 'medium',
+            'rating': 0.0,
+            'review_count': 0,
+        }
+        
+        try:
+            hospital = Hospital.objects.create(**hospital_data)
+            
+            return Response({
+                'message': 'Hospital created successfully',
+                'hospital_id': hospital.id,
+                'created': True
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class HospitalVisitViewSet(viewsets.ModelViewSet):

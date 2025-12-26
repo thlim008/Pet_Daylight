@@ -44,10 +44,6 @@ class Community(models.Model):
         default=0,
         help_text="조회수"
     )
-    likes = models.IntegerField(
-        default=0,
-        help_text="좋아요 수"
-    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -69,10 +65,40 @@ class Community(models.Model):
         self.views += 1
         self.save(update_fields=['views'])
     
-    def increment_likes(self):
-        """좋아요 증가"""
-        self.likes += 1
-        self.save(update_fields=['likes'])
+    @property
+    def likes(self):
+        """좋아요 수 (동적 계산)"""
+        return self.user_likes.count()
+
+
+class CommunityLike(models.Model):
+    """커뮤니티 좋아요 모델"""
+    
+    community = models.ForeignKey(
+        Community,
+        on_delete=models.CASCADE,
+        related_name='user_likes',
+        help_text="게시글"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='community_likes',
+        help_text="사용자"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'community_likes'
+        verbose_name = '커뮤니티 좋아요'
+        verbose_name_plural = '커뮤니티 좋아요 목록'
+        unique_together = ['community', 'user']
+        indexes = [
+            models.Index(fields=['community', 'user']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} likes {self.community.title}"
 
 
 class CommunityComment(models.Model):

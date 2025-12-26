@@ -6,28 +6,39 @@ from app.lifecycles.serializers import PetListSerializer
 
 class HospitalSerializer(serializers.ModelSerializer):
     """병원/미용실 Serializer"""
+    is_open_now = serializers.SerializerMethodField()
     
     class Meta:
         model = Hospital
         fields = [
             'id', 'name', 'type', 'phone', 'address',
-            'latitude', 'longitude', 'opening_hours', 'services',
+            'latitude', 'longitude', 'is_24_hours', 'opening_hours', 'services',
             'price_range', 'rating', 'review_count',
-            'description', 'website',
+            'description', 'website', 'is_open_now',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'rating', 'review_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'rating', 'review_count', 'is_open_now', 'created_at', 'updated_at']
+    
+    def get_is_open_now(self, obj):
+        """현재 진료 중인지 반환"""
+        return obj.is_open_now()
 
 
 class HospitalListSerializer(serializers.ModelSerializer):
     """병원/미용실 리스트용 Serializer"""
+    is_open_now = serializers.SerializerMethodField()
     
     class Meta:
         model = Hospital
         fields = [
             'id', 'name', 'type', 'address',
-            'price_range', 'rating', 'review_count'
+            'price_range', 'rating', 'review_count',
+            'is_24_hours', 'is_open_now'
         ]
+    
+    def get_is_open_now(self, obj):
+        """현재 진료 중인지 반환"""
+        return obj.is_open_now()
 
 
 class HospitalVisitSerializer(serializers.ModelSerializer):
