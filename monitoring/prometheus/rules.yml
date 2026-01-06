@@ -325,3 +325,471 @@ groups:
             2) OOM (메모리 부족)
             3) 애플리케이션 크래시
             4) Health check 실패
+
+  # ---------------------------
+  # 비즈니스 메트릭 알람 (신규)
+  # ---------------------------
+  - name: business_metrics
+    interval: 30s
+    rules:
+      # 로그인/가입 실패율 높음
+      - alert: HighLoginFailureRate
+        expr: |
+          (
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view=~".*login.*|.*register.*|naver_login|kakao_login",
+              status=~"4..|5.."
+            }[5m]))
+            /
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view=~".*login.*|.*register.*|naver_login|kakao_login"
+            }[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 로그인/가입 실패율 높음: {{ $value | humanizePercentage }}"
+          description: |
+            최근 5분간 로그인/가입 실패율이 10%를 초과했습니다.
+            현재 실패율: {{ $value | humanizePercentage }}
+            
+            확인 사항:
+            1) 외부 OAuth 서비스 (Naver/Kakao) 상태
+            2) 데이터베이스 연결 문제
+            3) 세션/인증 시스템 이상
+            4) 최근 인증 로직 변경 여부
+
+      # 4xx 에러율 급증 (클라이언트 오류)
+      - alert: High4xxErrorRate
+        expr: |
+          (
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics",
+              status=~"4.."
+            }[5m]))
+            /
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics"
+            }[5m]))
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 4xx 에러율 높음: {{ $value | humanizePercentage }}"
+          description: |
+            최근 5분간 4xx 에러율이 20%를 초과했습니다.
+            현재 에러율: {{ $value | humanizePercentage }}
+            
+            가능한 원인:
+            1) API 스펙 변경으로 인한 클라이언트 호환성 문제
+            2) 잘못된 요청 증가
+            3) 프론트엔드 버그
+
+  # ---------------------------
+  # API 엔드포인트별 모니터링 (신규)
+  # ---------------------------
+  - name: api_endpoints
+    interval: 30s
+    rules:
+      # 병원 API 느림
+      - alert: SlowHospitalAPI
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (view, le) (
+              rate(django_http_requests_latency_seconds_by_view_method_bucket{
+                job="django",
+                view=~"hospitals:.*"
+              }[5m])
+            )
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 병원 API 느림: {{ $labels.view }}"
+          description: |
+            병원 관련 API의 p95 응답시간이 2초를 초과했습니다.
+            엔드포인트: {{ $labels.view }}
+            현재 p95: {{ $value | humanizeDuration }}
+            
+            확인 사항:
+            1) Kakao API 호출 지연
+            2) 병원 데이터 쿼리 최적화 필요
+            3) 외부 지도 API 상태
+
+      # 실종 동물 API 느림
+      - alert: SlowMissingPetAPI
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (view, le) (
+              rate(django_http_requests_latency_seconds_by_view_method_bucket{
+                job="django",
+                view=~"missing.*"
+              }[5m])
+            )
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 실종동물 API 느림: {{ $labels.view }}"
+          description: |
+            실종동물 관련 API의 p95 응답시간이 2초를 초과했습니다.
+            엔드포인트: {{ $labels.view }}
+            현재 p95: {{ $value | humanizeDuration }}
+
+      # 특정 API 5xx 에러 발생
+      - alert: APIEndpoint5xxErrors
+        expr: |
+          sum by (view) (
+            rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics",
+              status=~"5.."
+            }[5m])
+          ) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ API 엔드포인트 에러: {{ $labels.view }}"
+          description: |
+            특정 엔드포인트에서 5xx 에러가 발생하고 있습니다.
+            엔드포인트: {{ $labels.view }}
+            에러 발생률: {{ $value | humanize }} req/s
+
+  # ---------------------------
+  # 데이터베이스 고급 모니터링 (신규)
+  # ---------------------------
+  - name: database_advanced
+    interval: 30s
+    rules:
+      # DB 연결 풀 고갈 위험
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          (
+            pg_stat_database_numbackends{job="postgres"}
+            /
+            pg_settings_max_connections{job="postgres"}
+          ) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "🚨 DB 연결 풀 고갈 임박: {{ $value | humanizePercentage }}"
+          description: |
+            데이터베이스 연결이 거의 한계에 도달했습니다.
+            현재 사용률: {{ $value | humanizePercentage }}
+            
+            즉시 조치:
+            1) 유휴 연결 강제 종료
+            2) Connection pool 설정 긴급 확인
+            3) 애플리케이션 재시작 고려
+
+      # DB 트랜잭션 롤백 증가
+      - alert: HighDatabaseRollbacks
+        expr: |
+          rate(pg_stat_database_xact_rollback{job="postgres"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "⚠️ DB 트랜잭션 롤백 증가"
+          description: |
+            데이터베이스 트랜잭션 롤백이 증가하고 있습니다.
+            현재 롤백률: {{ $value | humanize }}/s
+            
+            가능한 원인:
+            1) 애플리케이션 로직 오류
+            2) 동시성 충돌
+            3) Deadlock 발생
+
+  # ---------------------------
+  # Redis 고급 모니터링 (신규)
+  # ---------------------------
+  - name: redis_advanced
+    interval: 30s
+    rules:
+      # Redis 캐시 적중률 낮음
+      - alert: LowRedisCacheHitRate
+        expr: |
+          (
+            rate(redis_keyspace_hits_total{job="redis"}[5m])
+            /
+            (rate(redis_keyspace_hits_total{job="redis"}[5m]) + rate(redis_keyspace_misses_total{job="redis"}[5m]))
+          ) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "⚠️ Redis 캐시 적중률 낮음: {{ $value | humanizePercentage }}"
+          description: |
+            Redis 캐시 적중률이 70% 미만입니다.
+            현재 적중률: {{ $value | humanizePercentage }}
+            
+            확인 사항:
+            1) 캐시 키 설계 재검토
+            2) TTL 설정 적절성
+            3) 캐시 워밍 필요 여부
+
+      # Redis 초당 명령 수 급증
+      - alert: RedisHighCommandRate
+        expr: |
+          rate(redis_commands_processed_total{job="redis"}[5m]) > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "⚠️ Redis 명령 수 급증: {{ $value | humanize }}/s"
+          description: |
+            Redis 초당 명령 처리가 비정상적으로 높습니다.
+            현재 처리량: {{ $value | humanize }} cmd/s
+            
+            확인 사항:
+            1) 트래픽 급증
+            2) 비효율적인 캐시 사용 패턴
+            3) 캐시 스탬피드 현상
+
+  # ---------------------------
+  # 외부 API 의존성 모니터링 (신규)
+  # ---------------------------
+  - name: external_dependencies
+    interval: 30s
+    rules:
+      # Naver API 장애
+      - alert: NaverAPIDown
+        expr: |
+          rate(django_http_responses_total_by_status_view_method_total{
+            job="django",
+            view="naver_login",
+            status=~"5.."
+          }[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+          service: external_api
+        annotations:
+          summary: "🚨 Naver API 장애 감지"
+          description: |
+            Naver 로그인 API에서 5xx 에러가 발생하고 있습니다.
+            에러 발생률: {{ $value | humanize }} req/s
+            
+            조치:
+            1) Naver Developers 공지사항 확인
+            2) 대체 인증 방법 안내
+            3) 사용자에게 공지
+
+      # Kakao API 장애
+      - alert: KakaoAPIDown
+        expr: |
+          rate(django_http_responses_total_by_status_view_method_total{
+            job="django",
+            view=~".*kakao.*",
+            status=~"5.."
+          }[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+          service: external_api
+        annotations:
+          summary: "🚨 Kakao API 장애 감지"
+          description: |
+            Kakao API에서 5xx 에러가 발생하고 있습니다.
+            에러 발생률: {{ $value | humanize }} req/s
+            
+            영향 받는 기능:
+            1) Kakao 로그인
+            2) 병원 지도 검색
+
+      # 외부 API 응답 지연
+      - alert: ExternalAPISlowResponse
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (view, le) (
+              rate(django_http_requests_latency_seconds_by_view_method_bucket{
+                job="django",
+                view=~"naver_login|.*kakao.*"
+              }[5m])
+            )
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          service: external_api
+        annotations:
+          summary: "⚠️ 외부 API 응답 지연: {{ $labels.view }}"
+          description: |
+            외부 API 응답이 매우 느립니다.
+            API: {{ $labels.view }}
+            현재 p95: {{ $value | humanizeDuration }}
+            
+            조치:
+            1) 타임아웃 설정 확인
+            2) Circuit Breaker 패턴 적용 고려
+            3) 외부 서비스 상태 페이지 확인
+
+  # ---------------------------
+  # 디스크 예측 알람 (신규)
+  # ---------------------------
+  - name: disk_prediction
+    interval: 1m
+    rules:
+      # 디스크 4시간 내 소진 예측
+      - alert: DiskWillFillIn4Hours
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{
+            job="node_exporter",
+            fstype=~"ext4|xfs"
+          }[1h], 4 * 3600) < 0
+        for: 10m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "🚨 디스크 공간 4시간 내 소진 예상"
+          description: |
+            현재 추세로 디스크가 4시간 내에 가득 찰 것으로 예측됩니다.
+            Mountpoint: {{ $labels.mountpoint }}
+            Instance: {{ $labels.instance }}
+            
+            즉시 조치:
+            1) 로그 파일 긴급 삭제
+            2) 임시 파일 정리
+            3) 디스크 용량 긴급 확장
+
+  # ---------------------------
+  # 트래픽 이상 감지 (신규)
+  # ---------------------------
+  - name: traffic_anomaly
+    interval: 30s
+    rules:
+      # 트래픽 급증 (평소 대비 5배)
+      - alert: TrafficSpike
+        expr: |
+          (
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics"
+            }[5m]))
+            /
+            avg_over_time(
+              sum(rate(django_http_responses_total_by_status_view_method_total{
+                job="django",
+                view!="prometheus-django-metrics"
+              }[5m]))[1h:5m]
+            )
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 트래픽 급증 감지: {{ $value | humanize }}배"
+          description: |
+            트래픽이 평소 대비 5배 이상 증가했습니다.
+            현재 배율: {{ $value | humanize }}배
+            
+            확인 사항:
+            1) 정상적인 이벤트/홍보인지
+            2) DDoS 공격 가능성
+            3) 서버 리소스 충분한지
+            4) 스케일 아웃 필요 여부
+
+      # 트래픽 급감 (평소 대비 20% 미만)
+      - alert: TrafficDrop
+        expr: |
+          (
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics"
+            }[5m]))
+            /
+            avg_over_time(
+              sum(rate(django_http_responses_total_by_status_view_method_total{
+                job="django",
+                view!="prometheus-django-metrics"
+              }[5m]))[1h:5m]
+            )
+          ) < 0.2
+        for: 10m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 트래픽 급감 감지"
+          description: |
+            트래픽이 평소 대비 20% 미만으로 감소했습니다.
+            
+            확인 사항:
+            1) 서비스 접근성 문제
+            2) DNS/네트워크 장애
+            3) 프론트엔드 배포 이슈
+            4) 검색엔진 노출 문제
+
+  # ---------------------------
+  # 보안 알람 (신규)
+  # ---------------------------
+  - name: security
+    interval: 30s
+    rules:
+      # 비정상적인 401 인증 실패 급증
+      - alert: HighAuthenticationFailures
+        expr: |
+          sum(rate(django_http_responses_total_by_status_view_method_total{
+            job="django",
+            status="401"
+          }[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "⚠️ 인증 실패 급증: {{ $value | humanize }}/s"
+          description: |
+            401 인증 실패가 비정상적으로 많이 발생하고 있습니다.
+            현재 발생률: {{ $value | humanize }} req/s
+            
+            가능한 원인:
+            1) 무차별 대입 공격 (Brute Force)
+            2) 토큰 만료 이슈
+            3) 클라이언트 인증 로직 버그
+
+      # 403 Forbidden 급증
+      - alert: HighForbiddenRequests
+        expr: |
+          sum(rate(django_http_responses_total_by_status_view_method_total{
+            job="django",
+            status="403"
+          }[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "⚠️ 권한 거부 요청 급증: {{ $value | humanize }}/s"
+          description: |
+            403 Forbidden 응답이 급증하고 있습니다.
+            현재 발생률: {{ $value | humanize }} req/s
+            
+            가능한 원인:
+            1) 권한 설정 변경
+            2) CSRF 토큰 문제
+            3) 비정상적인 접근 시도
