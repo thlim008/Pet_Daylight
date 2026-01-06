@@ -20,6 +20,8 @@ from django.conf import settings  # ← 이 줄 추가!
 from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Prometheus 메트릭 엔드포인트
+    path('', include('django_prometheus.urls')),
     # API URLs
     path('api/accounts/', include('app.accounts.urls')), 
     path('api/missing-pets/', include('app.missing_pets.urls')), 

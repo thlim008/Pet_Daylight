@@ -16,14 +16,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
+# ALLOWED_HOSTS 설정 (Prometheus 접근 허용)
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-
-
+ALLOWED_HOSTS.extend(['backend', 'localhost', '127.0.0.1'])
 # ===========================================
 # 앱 설정
 # ===========================================
 
 INSTALLED_APPS = [
+    'django_prometheus',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -64,6 +65,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -74,6 +76,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'app.accounts.middleware.SocialLoginRedirectMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -103,7 +106,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django_prometheus.db.backends.postgresql',
         'NAME': os.environ.get('RDS_DB_NAME', 'petdaylight_db'),
         'USER': os.environ.get('RDS_USERNAME', 'postgres'),
         'PASSWORD': os.environ.get('RDS_PASSWORD'),

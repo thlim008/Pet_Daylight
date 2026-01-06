@@ -1,0 +1,247 @@
+# ============================================
+# Pet Daylight - Complete Monitoring Stack
+# Prometheus + Grafana + Exporters + Alerting
+# ============================================
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # Django Backend (기존)
+  # ===========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petdaylight-backend
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    networks:
+      - petdaylight-network
+    labels:
+      - "monitoring.enable=true"
+
+  # ===========================================
+  # Frontend (기존)
+  # ===========================================
+  frontend:
+    build: ./frontend
+    container_name: petdaylight-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # Redis (기존)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: petdaylight-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # Nginx (기존)
+  # ===========================================
+  nginx:
+    image: nginx:alpine
+    container_name: petdaylight-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - grafana
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # Prometheus (메트릭 수집 서버)
+  # ===========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: petdaylight-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - petdaylight-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ===========================================
+  # Grafana (시각화 대시보드)
+  # ===========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: petdaylight-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=petdaylight2024!
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
+      - GF_SERVER_ROOT_URL=https://petdaylight.mooo.com/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - petdaylight-network
+    depends_on:
+      - prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ===========================================
+  # Node Exporter (시스템 메트릭)
+  # ===========================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: petdaylight-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # Redis Exporter (Redis 메트릭)
+  # ===========================================
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: petdaylight-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - petdaylight-network
+    depends_on:
+      - redis
+
+  # ===========================================
+  # PostgreSQL Exporter (RDS 메트릭)
+  # ===========================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: petdaylight-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    env_file:
+      - .env.prod
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${RDS_USERNAME}:${RDS_PASSWORD}@${RDS_HOSTNAME}:${RDS_PORT}/${RDS_DB_NAME}?sslmode=require
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # cAdvisor (컨테이너 메트릭)
+  # ===========================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: petdaylight-cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - petdaylight-network
+
+  # ===========================================
+  # Alertmanager (알람 관리)
+  # ===========================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: petdaylight-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - petdaylight-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ===========================================
+  # Grafana-Discord Relay (알림 브릿지)
+  # ===========================================
+  discord-relay:
+    build:
+      context: ./monitoring/discord-relay
+      dockerfile: Dockerfile
+    container_name: petdaylight-discord-relay
+    restart: unless-stopped
+    ports:
+      - "8800:8800"
+    env_file:
+      - ./monitoring/discord-relay/.env
+    networks:
+      - petdaylight-network
+
+networks:
+  petdaylight-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:

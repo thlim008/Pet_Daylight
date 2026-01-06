@@ -1,0 +1,327 @@
+# ===========================
+# Pet Daylight Alert Rules
+# ===========================
+
+groups:
+  # ---------------------------
+  # 가용성 알람
+  # ---------------------------
+  - name: uptime_and_availability
+    interval: 30s
+    rules:
+      # 서비스 다운 감지
+      - alert: ServiceDown
+        expr: up{job=~"django|redis|postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "🚨 서비스 다운: {{ $labels.job }}"
+          description: |
+            서비스가 2분 이상 응답하지 않습니다.
+            Job: {{ $labels.job }}
+            Instance: {{ $labels.instance }}
+            현재 상태: DOWN (up=0)
+          runbook_url: "https://github.com/your-repo/runbooks/service-down"
+
+  # ---------------------------
+  # Django 애플리케이션 알람
+  # ---------------------------
+  - name: django_application
+    interval: 30s
+    rules:
+      # 5xx 에러율 > 1%
+      - alert: High5xxErrorRate
+        expr: |
+          (
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics",
+              status=~"5.."
+            }[5m]))
+            / 
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics"
+            }[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 5xx 에러율 상승: {{ $value | humanizePercentage }}"
+          description: |
+            최근 5분간 5xx 에러율이 1%를 초과했습니다.
+            현재 에러율: {{ $value | humanizePercentage }}
+            임계값: 1%
+            
+            확인 사항:
+            1) 최근 배포 여부
+            2) 데이터베이스 연결 상태
+            3) 외부 API 장애 여부
+            4) 에러 로그 확인
+
+      # p95 응답 시간 > 800ms
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(django_http_requests_latency_seconds_by_view_method_bucket{
+                job="django",
+                view!="prometheus-django-metrics"
+              }[5m])
+            )
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 응답 지연 상승: p95 {{ $value | humanizeDuration }}"
+          description: |
+            최근 5분간 p95 응답시간이 800ms를 초과했습니다.
+            현재 p95: {{ $value | humanizeDuration }}
+            임계값: 800ms
+            
+            확인 사항:
+            1) 느린 쿼리 확인 (DB 메트릭)
+            2) 외부 API 호출 지연
+            3) CPU/메모리 사용률
+            4) N+1 쿼리 문제
+
+      # 5xx 절대값 > 0.5 RPS (트래픽이 적을 때도 감지)
+      - alert: High5xxAbsolute
+        expr: |
+          sum(rate(django_http_responses_total_by_status_view_method_total{
+            job="django",
+            status=~"5..",
+            view!="prometheus-django-metrics"
+          }[5m])) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 5xx 에러 발생: {{ $value | humanize }} req/s"
+          description: |
+            5xx 에러가 지속적으로 발생 중입니다.
+            현재 발생률: {{ $value | humanize }} req/s
+            
+            최근 3분간 에러가 계속 발생하고 있습니다.
+
+  # ---------------------------
+  # 데이터베이스 (RDS) 알람
+  # ---------------------------
+  - name: database
+    interval: 30s
+    rules:
+      # DB 연결 수 > 90%
+      - alert: HighDatabaseConnections
+        expr: |
+          (
+            pg_stat_database_numbackends{job="postgres"}
+            /
+            pg_settings_max_connections{job="postgres"}
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "⚠️ DB 연결 수 높음: {{ $value | humanizePercentage }}"
+          description: |
+            데이터베이스 연결 수가 최대 연결 수의 90%를 초과했습니다.
+            현재 사용률: {{ $value | humanizePercentage }}
+            
+            조치:
+            1) 유휴 연결 확인
+            2) Connection pool 설정 확인
+            3) 느린 쿼리로 인한 연결 점유 확인
+
+      # DB 쿼리 p95 > 200ms
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(django_db_query_duration_seconds_bucket{job="django"}[5m])
+            )
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "⚠️ DB 쿼리 지연: p95 {{ $value | humanizeDuration }}"
+          description: |
+            데이터베이스 쿼리 p95가 200ms를 초과했습니다.
+            현재 p95: {{ $value | humanizeDuration }}
+            
+            확인 사항:
+            1) EXPLAIN ANALYZE로 느린 쿼리 분석
+            2) 인덱스 확인
+            3) DB CPU/메모리 사용률
+            4) Lock 상태 확인
+
+  # ---------------------------
+  # Redis 알람
+  # ---------------------------
+  - name: redis
+    interval: 30s
+    rules:
+      # Redis 메모리 사용률 > 80%
+      - alert: RedisHighMemory
+        expr: |
+          (
+            redis_memory_used_bytes{job="redis"}
+            /
+            redis_memory_max_bytes{job="redis"}
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "⚠️ Redis 메모리 사용률 높음: {{ $value | humanizePercentage }}"
+          description: |
+            Redis 메모리 사용률이 80%를 초과했습니다.
+            현재 사용률: {{ $value | humanizePercentage }}
+            
+            조치:
+            1) 캐시 만료 정책 확인
+            2) 불필요한 키 제거
+            3) maxmemory-policy 설정 확인
+
+      # Redis 연결 거부
+      - alert: RedisRejectedConnections
+        expr: rate(redis_rejected_connections_total{job="redis"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "⚠️ Redis 연결 거부 발생"
+          description: |
+            Redis가 연결을 거부하고 있습니다.
+            초당 거부 수: {{ $value | humanize }}
+            
+            원인:
+            - maxclients 제한 도달
+            - 메모리 부족
+
+  # ---------------------------
+  # 시스템 리소스 알람
+  # ---------------------------
+  - name: system_resources
+    interval: 30s
+    rules:
+      # CPU 사용률 > 80%
+      - alert: HighCPUUsage
+        expr: |
+          (
+            1 - avg by (instance) (
+              rate(node_cpu_seconds_total{mode="idle",job="node_exporter"}[5m])
+            )
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "⚠️ CPU 사용률 높음: {{ $value | humanizePercentage }}"
+          description: |
+            CPU 사용률이 10분 이상 80%를 초과했습니다.
+            현재 사용률: {{ $value | humanizePercentage }}
+            Instance: {{ $labels.instance }}
+            
+            조치:
+            1) 프로세스별 CPU 사용률 확인
+            2) 스케일 아웃 고려
+            3) 비효율적인 코드 최적화
+
+      # 메모리 여유 < 10%
+      - alert: LowMemory
+        expr: |
+          (
+            node_memory_MemAvailable_bytes{job="node_exporter"}
+            /
+            node_memory_MemTotal_bytes{job="node_exporter"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "⚠️ 메모리 여유 부족: {{ $value | humanizePercentage }}"
+          description: |
+            가용 메모리가 10% 미만입니다.
+            현재 여유율: {{ $value | humanizePercentage }}
+            Instance: {{ $labels.instance }}
+            
+            조치:
+            1) 메모리 누수 확인
+            2) 프로세스 메모리 사용량 확인
+            3) 스왑 사용 여부 확인
+            4) 인스턴스 업그레이드 고려
+
+      # 디스크 사용률 > 85%
+      - alert: HighDiskUsage
+        expr: |
+          (
+            1 - (
+              node_filesystem_avail_bytes{
+                job="node_exporter",
+                fstype=~"ext4|xfs"
+              }
+              /
+              node_filesystem_size_bytes{
+                job="node_exporter",
+                fstype=~"ext4|xfs"
+              }
+            )
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "⚠️ 디스크 사용률 높음: {{ $value | humanizePercentage }}"
+          description: |
+            디스크 사용률이 85%를 초과했습니다.
+            현재 사용률: {{ $value | humanizePercentage }}
+            Mountpoint: {{ $labels.mountpoint }}
+            Instance: {{ $labels.instance }}
+            
+            조치:
+            1) 로그 파일 정리
+            2) 임시 파일 삭제
+            3) 오래된 백업 파일 제거
+            4) 디스크 용량 확장 고려
+
+  # ---------------------------
+  # 컨테이너 리소스 알람
+  # ---------------------------
+  - name: containers
+    interval: 30s
+    rules:
+      # 컨테이너 재시작
+      - alert: ContainerRestarting
+        expr: rate(container_start_time_seconds[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "⚠️ 컨테이너 재시작 감지"
+          description: |
+            컨테이너가 계속 재시작되고 있습니다.
+            Container: {{ $labels.name }}
+            
+            원인 확인:
+            1) docker logs로 에러 확인
+            2) OOM (메모리 부족)
+            3) 애플리케이션 크래시
+            4) Health check 실패
