@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+
+    # API 문서화
+    'drf_spectacular',
     
     # Django Allauth
     'allauth',
@@ -176,6 +179,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+
+     # Swagger 스키마 설정
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 
@@ -357,3 +363,53 @@ PASSWORD_RESET_TIMEOUT = 86400  # 24시간
 # ==========================================
 FRONTEND_URL = 'http://localhost:3000'  # 개발 환경
 # FRONTEND_URL = 'https://yourdomain.com'  # 배포 시 변경
+# ==========================================
+# API 문서화 설정 (drf-spectacular)
+# ==========================================
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Pet Daylight API',
+    'DESCRIPTION': '''
+    반려동물 종합 관리 플랫폼 Pet Daylight의 RESTful API 문서입니다.
+    
+    ## 주요 기능
+    - 🔐 소셜 로그인 (Naver, Kakao, Google)
+    - 🐾 반려동물 생애주기 관리
+    - 🏥 동물병원 검색 및 리뷰
+    - 🔍 실종동물 신고 및 검색
+    - 💬 커뮤니티 게시판
+    - 🔔 알림 시스템
+    ''',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': 'JWT 토큰 인증. 형식: Bearer {token}'
+            }
+        }
+    },
+    'TAGS': [
+        {'name': 'accounts', 'description': '사용자 계정 관리 및 인증'},
+        {'name': 'social-auth', 'description': '소셜 로그인 (Naver, Kakao, Google)'},
+        {'name': 'lifecycles', 'description': '반려동물 생애주기 관리'},
+        {'name': 'hospitals', 'description': '동물병원 검색 및 리뷰'},
+        {'name': 'missing-pets', 'description': '실종동물 신고 및 검색'},
+        {'name': 'communities', 'description': '커뮤니티 게시판'},
+        {'name': 'notifications', 'description': '알림 시스템'},
+    ],
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'displayRequestDuration': True,
+        'docExpansion': 'none',
+        'filter': True,
+    },
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    'SCHEMA_PATH_PREFIX_TRIM': True,
+}
