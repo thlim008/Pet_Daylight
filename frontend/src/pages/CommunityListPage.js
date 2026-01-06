@@ -159,7 +159,7 @@ function CommunityListPage() {
     const badge = badges[category] || badges['tips'];
     
     return (
-      <span className={`px-3 py-1 ${badge.bg} ${badge.text} rounded-full text-sm font-medium inline-flex items-center space-x-1`}>
+      <span className={`px-2 sm:px-3 py-1 ${badge.bg} ${badge.text} rounded-full text-xs sm:text-sm font-medium inline-flex items-center space-x-1`}>
         <span>{badge.emoji}</span>
         <span>{badge.label}</span>
       </span>
@@ -181,31 +181,52 @@ function CommunityListPage() {
     <div className="min-h-screen bg-[#FAFAF9]">
       {/* 헤더 */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button onClick={() => navigate('/')} className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <img 
-                  src="/logo.png" 
-                  alt="Pet Daylight" 
-                  className="w-14 h-14 object-contain drop-shadow-md"
-                  onError={(e) => {
-                    console.error('헤더 로고 로드 실패');
-                    e.target.style.display = 'none';
-                    const fallback = document.createElement('div');
-                    fallback.className = 'w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md';
-                    fallback.innerHTML = '<span class="text-white text-2xl font-bold">🌞</span>';
-                    e.target.parentElement.appendChild(fallback);
-                  }}
-                />
-                <div>
-                  <span className="text-xl font-bold text-gray-900">Pet Daylight</span>
-                  <p className="text-xs text-gray-500">커뮤니티</p>
-                </div>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity flex-shrink-0"
+            >
+              <img 
+                src="/logo.png" 
+                alt="Pet Daylight" 
+                className="w-8 h-8 sm:w-12 sm:h-12 object-contain drop-shadow-md"
+                onError={(e) => {
+                  console.error('헤더 로고 로드 실패');
+                  e.target.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md';
+                  fallback.innerHTML = '<span class="text-white text-lg sm:text-2xl font-bold">🌞</span>';
+                  e.target.parentElement.appendChild(fallback);
+                }}
+              />
+              <div className="hidden sm:block">
+                <span className="text-lg font-bold text-gray-900">Pet Daylight</span>
+                <p className="text-xs text-gray-500">커뮤니티</p>
+              </div>
+            </button>
+
+            {/* 모바일: 아이콘 버튼들 */}
+            <div className="flex sm:hidden items-center gap-1.5">
+              <button
+                onClick={() => navigate('/communities/create')}
+                className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-all whitespace-nowrap"
+              >
+                + 글쓰기
+              </button>
+
+              <button
+                onClick={() => navigate('/profile')}
+                className="p-1.5 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
               </button>
             </div>
 
-            <div className="flex items-center space-x-4">
+            {/* 데스크톱: 일반 버튼들 */}
+            <div className="hidden sm:flex items-center gap-4">
               <button
                 onClick={() => navigate('/communities/create')}
                 className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all shadow-md"
@@ -214,7 +235,7 @@ function CommunityListPage() {
               </button>
               <button
                 onClick={() => navigate('/profile')}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
               >
                 프로필
               </button>
@@ -223,76 +244,64 @@ function CommunityListPage() {
         </div>
       </header>
 
-      {/* Hero 배너 */}
-      <section className="bg-gradient-to-br from-amber-50 to-orange-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              🐾 Pet Daylight 커뮤니티
-            </h1>
-            <p className="text-lg text-gray-600">
-              반려동물과의 소중한 순간을 공유하세요
-            </p>
+      {/* 필터 섹션 */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-gray-700">
+              필터 {activeFiltersCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">
+                  {activeFiltersCount}개 적용중
+                </span>
+              )}
+            </h2>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={handleResetFilters}
+                className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                필터 초기화
+              </button>
+            )}
           </div>
 
-          {/* 검색 & 필터 */}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700">
-                필터 {activeFiltersCount > 0 && (
-                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">
-                    {activeFiltersCount}개 적용중
-                  </span>
-                )}
-              </h3>
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={handleResetFilters}
-                  className="text-sm text-gray-600 hover:text-gray-900 underline"
-                >
-                  필터 초기화
-                </button>
-              )}
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {/* 검색 */}
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+            />
 
-            <div className="flex space-x-3">
-              <input
-                type="text"
-                placeholder="검색어를 입력하세요..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none transition-all"
-              />
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none transition-all"
-              >
-                <option value="">전체 카테고리</option>
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.emoji} {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* 카테고리 */}
+            <select
+              value={filters.category}
+              onChange={(e) => handleFilterChange('category', e.target.value)}
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+            >
+              <option value="">전체 카테고리</option>
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.emoji} {cat.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </section>
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 메인 컨텐츠 */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 왼쪽: 게시글 목록 */}
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {filters.category
-                  ? categories.find(c => c.value === filters.category)?.label
-                  : '전체 게시글'
-                }
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                전체 게시글
               </h2>
-              <span className="text-sm text-gray-500">
+              <span className="text-xs sm:text-sm text-gray-500">
                 총 {posts.length}개
               </span>
             </div>
@@ -302,10 +311,10 @@ function CommunityListPage() {
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-900 border-t-transparent"></div>
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
-                <div className="text-6xl mb-4">📝</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">게시글이 없습니다</h3>
-                <p className="text-gray-600 mb-6">
+              <div className="text-center py-12 sm:py-20 bg-white rounded-2xl border border-gray-200">
+                <div className="text-4xl sm:text-6xl mb-4">📝</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">게시글이 없습니다</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6">
                   {activeFiltersCount > 0 ? '다른 필터로 검색해보세요' : '첫 번째 게시글을 작성해보세요'}
                 </p>
                 {activeFiltersCount > 0 ? (
@@ -325,7 +334,7 @@ function CommunityListPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {posts.map((post) => {
                   const thumbnail = getThumbnail(post);
                   
@@ -333,26 +342,26 @@ function CommunityListPage() {
                     <div
                       key={post.id}
                       onClick={() => navigate(`/communities/${post.id}`)}
-                      className="bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
+                      className="bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
                     >
-                      <div className="p-6">
+                      <div className="p-4 sm:p-6">
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
                               {getCategoryBadge(post.category)}
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2 hover:text-amber-600 transition-colors">
+                            <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-2 hover:text-amber-600 transition-colors line-clamp-2">
                               {post.title}
                             </h3>
                           </div>
                           
-                          {/* 썸네일 또는 첫 번째 이미지 표시 */}
+                          {/* 썸네일 */}
                           {thumbnail && (
-                            <div className="ml-4 flex-shrink-0">
+                            <div className="ml-3 sm:ml-4 flex-shrink-0">
                               <img
                                 src={thumbnail}
                                 alt={post.title}
-                                className="w-24 h-24 rounded-xl object-cover"
+                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg sm:rounded-xl object-cover"
                                 onError={(e) => {
                                   e.target.style.display = 'none';
                                 }}
@@ -361,31 +370,31 @@ function CommunityListPage() {
                           )}
                         </div>
                         
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100">
+                          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                             {post.user.profile_image ? (
                               <img
                                 src={post.user.profile_image}
                                 alt={post.user.username}
-                                className="w-8 h-8 rounded-full"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                <span className="text-gray-600 text-sm">👤</span>
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                <span className="text-gray-600 text-xs sm:text-sm">👤</span>
                               </div>
                             )}
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{post.user.username}</p>
+                            <div className="min-w-0">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{post.user.username}</p>
                               <p className="text-xs text-gray-500">
                                 {new Date(post.created_at).toLocaleDateString('ko-KR')}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm text-gray-500 flex-shrink-0">
                             <span className="flex items-center space-x-1">
                               <span>👁️</span>
-                              <span>{post.views}</span>
+                              <span className="hidden sm:inline">{post.views}</span>
                             </span>
                             <span className="flex items-center space-x-1">
                               <span>❤️</span>
@@ -405,8 +414,8 @@ function CommunityListPage() {
             )}
           </div>
 
-          {/* 오른쪽: 사이드바 */}
-          <div className="lg:col-span-1">
+          {/* 오른쪽: 사이드바 (데스크톱만) */}
+          <div className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24 space-y-6">
               {/* 인기 게시글 */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">

@@ -116,36 +116,62 @@ function MissingPetListPage() {
     <div className="min-h-screen bg-[#FAFAF9]">
       {/* 헤더 */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity flex-shrink-0"
             >
               <img 
                 src="/logo.png" 
                 alt="Pet Daylight" 
-                className="w-10 h-10 sm:w-14 sm:h-14 object-contain drop-shadow-md"
+                className="w-8 h-8 sm:w-12 sm:h-12 object-contain drop-shadow-md"
                 onError={(e) => {
                   console.error('헤더 로고 로드 실패');
                   e.target.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md';
-                  fallback.innerHTML = '<span class="text-white text-2xl font-bold">🌞</span>';
+                  fallback.className = 'w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md';
+                  fallback.innerHTML = '<span class="text-white text-lg sm:text-2xl font-bold">🌞</span>';
                   e.target.parentElement.appendChild(fallback);
                 }}
               />
-              <div>
-                <span className="text-sm sm:text-xl font-bold text-gray-900">Pet Daylight</span>
-                <p className="hidden sm:block text-xs text-gray-500">실종/발견 제보</p>
+              <div className="hidden sm:block">
+                <span className="text-lg font-bold text-gray-900">Pet Daylight</span>
+                <p className="text-xs text-gray-500">실종/발견 제보</p>
               </div>
             </button>
 
-            <div className="flex items-center space-x-3">
-              {/* 지도 보기 버튼 추가 */}
+            {/* 모바일: 아이콘 버튼들 */}
+            <div className="flex sm:hidden items-center gap-1.5">
               <button
                 onClick={() => navigate('/missing-pets/map')}
-                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-medium hover:bg-blue-100 transition-all flex items-center space-x-2"
+                className="px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-all"
+              >
+                🗺️
+              </button>
+
+              <button
+                onClick={() => navigate('/missing-pets/create')}
+                className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-all whitespace-nowrap"
+              >
+                + 제보
+              </button>
+
+              <button
+                onClick={() => navigate('/profile')}
+                className="p-1.5 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 데스크톱: 일반 버튼들 */}
+            <div className="hidden sm:flex items-center gap-3">
+              <button
+                onClick={() => navigate('/missing-pets/map')}
+                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-medium hover:bg-blue-100 transition-all flex items-center gap-2"
               >
                 <span>🗺️</span>
                 <span>지도</span>
@@ -157,9 +183,10 @@ function MissingPetListPage() {
               >
                 + 제보 등록
               </button>
+
               <button
                 onClick={() => navigate('/profile')}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
               >
                 프로필
               </button>
@@ -189,21 +216,21 @@ function MissingPetListPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {/* 검색 */}
             <input
               type="text"
               placeholder="이름, 품종, 위치로 검색..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
             />
 
             {/* 구분 */}
             <select
               value={filters.category}
               onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
             >
               <option value="">전체 (실종/발견)</option>
               <option value="missing">실종</option>
@@ -214,7 +241,7 @@ function MissingPetListPage() {
             <select
               value={filters.species}
               onChange={(e) => handleFilterChange('species', e.target.value)}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
             >
               <option value="">전체 종류</option>
               <option value="dog">강아지</option>
@@ -226,7 +253,7 @@ function MissingPetListPage() {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
             >
               <option value="">전체 상태</option>
               <option value="active">진행중</option>
@@ -267,7 +294,7 @@ function MissingPetListPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {pets.map((pet) => (
               <div
                 key={pet.id}

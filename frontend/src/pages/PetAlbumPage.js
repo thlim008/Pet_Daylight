@@ -10,6 +10,8 @@ function PetAlbumPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -55,7 +57,7 @@ function PetAlbumPage() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteSingle = async (id) => {
     if (!window.confirm('삭제하시겠습니까?')) return;
     try {
       await API.delete(`/lifecycles/photos/${id}/`);
@@ -64,6 +66,51 @@ function PetAlbumPage() {
     } catch (err) {
       alert('삭제 실패');
     }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedPhotoIds.length === 0) {
+      alert('삭제할 사진을 선택해주세요.');
+      return;
+    }
+
+    if (!window.confirm(`선택한 ${selectedPhotoIds.length}장의 사진을 삭제하시겠습니까?`)) return;
+
+    try {
+      await Promise.all(
+        selectedPhotoIds.map(id => API.delete(`/lifecycles/photos/${id}/`))
+      );
+      alert(`${selectedPhotoIds.length}장 삭제 완료!`);
+      setSelectedPhotoIds([]);
+      setSelectMode(false);
+      loadData();
+    } catch (err) {
+      console.error('삭제 실패:', err);
+      alert('삭제에 실패했습니다.');
+    }
+  };
+
+  const toggleSelectPhoto = (photoId) => {
+    setSelectedPhotoIds(prev => {
+      if (prev.includes(photoId)) {
+        return prev.filter(id => id !== photoId);
+      } else {
+        return [...prev, photoId];
+      }
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPhotoIds.length === photos.length) {
+      setSelectedPhotoIds([]);
+    } else {
+      setSelectedPhotoIds(photos.map(p => p.id));
+    }
+  };
+
+  const cancelSelectMode = () => {
+    setSelectMode(false);
+    setSelectedPhotoIds([]);
   };
 
   if (loading) {
@@ -95,18 +142,62 @@ function PetAlbumPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">{pet?.name}의 앨범 ({photos.length}장)</h2>
-          <label className="px-4 py-2 bg-pink-500 text-white rounded-xl font-medium hover:bg-pink-600 cursor-pointer">
-            {uploading ? '업로드 중...' : '+ 사진 추가'}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleUpload}
-              className="hidden"
-              disabled={uploading}
-            />
-          </label>
+          <h2 className="text-xl font-bold text-gray-900">
+            {pet?.name}의 앨범 ({photos.length}장)
+            {selectMode && selectedPhotoIds.length > 0 && (
+              <span className="ml-2 text-pink-600">({selectedPhotoIds.length}장 선택됨)</span>
+            )}
+          </h2>
+          
+          <div className="flex gap-2">
+            {selectMode ? (
+              <>
+                {photos.length > 0 && (
+                  <button
+                    onClick={toggleSelectAll}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
+                  >
+                    {selectedPhotoIds.length === photos.length ? '전체 해제' : '전체 선택'}
+                  </button>
+                )}
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={selectedPhotoIds.length === 0}
+                  className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  삭제 ({selectedPhotoIds.length})
+                </button>
+                <button
+                  onClick={cancelSelectMode}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
+                >
+                  취소
+                </button>
+              </>
+            ) : (
+              <>
+                {photos.length > 0 && (
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
+                  >
+                    선택
+                  </button>
+                )}
+                <label className="px-4 py-2 bg-pink-500 text-white rounded-xl font-medium hover:bg-pink-600 cursor-pointer">
+                  {uploading ? '업로드 중...' : '+ 사진 추가'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
+              </>
+            )}
+          </div>
         </div>
 
         {photos.length === 0 ? (
@@ -120,20 +211,48 @@ function PetAlbumPage() {
             {photos.map((photo) => (
               <div
                 key={photo.id}
-                onClick={() => setSelectedPhoto(photo)}
-                className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => {
+                  if (selectMode) {
+                    toggleSelectPhoto(photo.id);
+                  } else {
+                    setSelectedPhoto(photo);
+                  }
+                }}
+                className={`aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-all relative ${
+                  selectMode && selectedPhotoIds.includes(photo.id) 
+                    ? 'ring-4 ring-pink-500' 
+                    : ''
+                }`}
               >
                 <img
                   src={photo.image}
                   alt={photo.caption || '펫 사진'}
                   className="w-full h-full object-cover"
                 />
+                
+                {/* 선택 모드일 때 체크박스 표시 */}
+                {selectMode && (
+                  <div className="absolute top-2 right-2">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedPhotoIds.includes(photo.id)
+                        ? 'bg-pink-500 border-pink-500'
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {selectedPhotoIds.includes(photo.id) && (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {selectedPhoto && (
+        {/* 사진 상세 보기 모달 (선택 모드가 아닐 때만) */}
+        {selectedPhoto && !selectMode && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedPhoto(null)}
@@ -154,15 +273,15 @@ function PetAlbumPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDelete(selectedPhoto.id)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm"
+                  onClick={() => handleDeleteSingle(selectedPhoto.id)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm hover:bg-red-600"
                 >
                   삭제
                 </button>
               </div>
               <button
                 onClick={() => setSelectedPhoto(null)}
-                className="absolute top-4 right-4 text-white text-3xl"
+                className="absolute top-4 right-4 text-white text-3xl hover:opacity-80"
               >
                 ✕
               </button>

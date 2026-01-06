@@ -9,6 +9,7 @@ function PetVaccinationPage() {
   const [vaccinations, setVaccinations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [noNextDueDate, setNoNextDueDate] = useState(false);
   const [formData, setFormData] = useState({
     vaccine_type: 'dhppl',
     vaccine_name: '',
@@ -51,7 +52,11 @@ function PetVaccinationPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = { ...formData, pet: petId };
+      const data = { 
+        ...formData, 
+        pet: petId,
+        next_due_date: noNextDueDate ? '' : formData.next_due_date
+      };
       if (editingId) {
         await API.put(`/lifecycles/vaccinations/${editingId}/`, data);
         alert('수정되었습니다!');
@@ -61,6 +66,7 @@ function PetVaccinationPage() {
       }
       setShowForm(false);
       setEditingId(null);
+      setNoNextDueDate(false);
       setFormData({
         vaccine_type: 'dhppl',
         vaccine_name: '',
@@ -85,6 +91,7 @@ function PetVaccinationPage() {
       hospital_name: vacc.hospital_name || '',
       notes: vacc.notes || ''
     });
+    setNoNextDueDate(!vacc.next_due_date);
     setEditingId(vacc.id);
     setShowForm(true);
   };
@@ -138,7 +145,11 @@ function PetVaccinationPage() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">예방접종 기록</h2>
           <button
-            onClick={() => { setShowForm(true); setEditingId(null); }}
+            onClick={() => { 
+              setShowForm(true); 
+              setEditingId(null); 
+              setNoNextDueDate(false);
+            }}
             className="px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600"
           >
             + 접종 추가
@@ -208,8 +219,24 @@ function PetVaccinationPage() {
                     type="date"
                     value={formData.next_due_date}
                     onChange={(e) => setFormData({...formData, next_due_date: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl disabled:bg-gray-100 disabled:text-gray-400"
+                    disabled={noNextDueDate}
                   />
+                  {/* 예정일 없음 체크박스 */}
+                  <label className="flex items-center mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={noNextDueDate}
+                      onChange={(e) => {
+                        setNoNextDueDate(e.target.checked);
+                        if (e.target.checked) {
+                          setFormData({...formData, next_due_date: ''});
+                        }
+                      }}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">예정일 없음</span>
+                  </label>
                 </div>
               </div>
               <div>
@@ -232,7 +259,14 @@ function PetVaccinationPage() {
                 />
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 bg-gray-100 rounded-xl">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowForm(false);
+                    setNoNextDueDate(false);
+                  }} 
+                  className="flex-1 py-3 bg-gray-100 rounded-xl"
+                >
                   취소
                 </button>
                 <button type="submit" className="flex-1 py-3 bg-green-500 text-white rounded-xl">
@@ -270,7 +304,11 @@ function PetVaccinationPage() {
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>📅 접종일: {vacc.vaccination_date}</p>
-                    {vacc.next_due_date && <p>⏰ 다음 접종: {vacc.next_due_date}</p>}
+                    {vacc.next_due_date ? (
+                      <p>⏰ 다음 접종: {vacc.next_due_date}</p>
+                    ) : (
+                      <p className="text-gray-400">⏰ 다음 접종: 없음</p>
+                    )}
                     {vacc.hospital_name && <p>🏥 병원: {vacc.hospital_name}</p>}
                     {vacc.notes && <p>📝 메모: {vacc.notes}</p>}
                   </div>
