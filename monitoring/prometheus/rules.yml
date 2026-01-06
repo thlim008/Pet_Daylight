@@ -74,17 +74,17 @@ groups:
                 view!="prometheus-django-metrics"
               }[5m])
             )
-          ) > 0.8
-        for: 5m
+          ) > 1.5
+        for: 10m
         labels:
           severity: warning
           service: django
         annotations:
           summary: "⚠️ 응답 지연 상승: p95 {{ $value | humanizeDuration }}"
           description: |
-            최근 5분간 p95 응답시간이 800ms를 초과했습니다.
+            최근 5분간 p95 응답시간이 1.5초를 초과했습니다.
             현재 p95: {{ $value | humanizeDuration }}
-            임계값: 800ms
+            임계값: 1.5s
             
             확인 사항:
             1) 느린 쿼리 확인 (DB 메트릭)
