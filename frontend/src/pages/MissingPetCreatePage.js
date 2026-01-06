@@ -23,6 +23,21 @@ function MissingPetCreatePage() {
   const [loadingLocation, setLoadingLocation] = useState(false);
 
   useEffect(() => {
+    // 프로필에서 전화번호 가져오기
+    const loadUserPhone = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          const response = await API.get('/accounts/me/');
+          if (response.data.phone_number) {
+            setFormData(prev => ({ ...prev, contact: response.data.phone_number }));
+          }
+        }
+      } catch (err) {
+        console.error('프로필 로드 실패:', err);
+      }
+    };
+    loadUserPhone();
     // 컴포넌트 마운트 시 현재 위치 자동 가져오기
     getCurrentLocation();
   }, []);

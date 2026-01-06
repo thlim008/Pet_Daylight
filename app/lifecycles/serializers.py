@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LifecycleGuide, Pet, UserChecklistProgress
+from .models import LifecycleGuide, Pet, UserChecklistProgress, Vaccination, HealthRecord, PetPhoto
 from app.accounts.serializers import UserSimpleSerializer
 
 
@@ -81,3 +81,46 @@ class PetListSerializer(serializers.ModelSerializer):
             'birth_date', 'adoption_date', 'weight',
             'profile_image', 'notes', 'age_in_years', 'is_active'
         ]
+
+class VaccinationSerializer(serializers.ModelSerializer):
+    """예방접종 기록 Serializer"""
+    vaccine_type_display = serializers.CharField(source='get_vaccine_type_display', read_only=True)
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    
+    class Meta:
+        model = Vaccination
+        fields = [
+            'id', 'pet', 'pet_name', 'vaccine_type', 'vaccine_type_display',
+            'vaccine_name', 'vaccination_date', 'next_due_date',
+            'hospital_name', 'notes', 'reminder_sent',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'reminder_sent', 'created_at', 'updated_at']
+
+
+class HealthRecordSerializer(serializers.ModelSerializer):
+    """건강 기록 Serializer"""
+    condition_display = serializers.CharField(source='get_condition_display', read_only=True)
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    
+    class Meta:
+        model = HealthRecord
+        fields = [
+            'id', 'pet', 'pet_name', 'record_date', 'weight',
+            'condition', 'condition_display', 'notes',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class PetPhotoSerializer(serializers.ModelSerializer):
+    """펫 사진 Serializer"""
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    
+    class Meta:
+        model = PetPhoto
+        fields = [
+            'id', 'pet', 'pet_name', 'image', 'caption',
+            'taken_date', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']

@@ -233,3 +233,145 @@ class Pet(models.Model):
         ):
             age -= 1
         return age
+
+class Vaccination(models.Model):
+    """예방접종 기록 모델"""
+    VACCINE_TYPES = [
+        ('dhppl', 'DHPPL (종합백신)'),
+        ('rabies', '광견병'),
+        ('corona', '코로나장염'),
+        ('kennel_cough', '켄넬코프'),
+        ('fvrcp', 'FVRCP (고양이 종합)'),
+        ('felv', '고양이 백혈병'),
+        ('other', '기타'),
+    ]
+    
+    pet = models.ForeignKey(
+        Pet,
+        on_delete=models.CASCADE,
+        related_name='vaccinations',
+        help_text="반려동물"
+    )
+    vaccine_type = models.CharField(
+        max_length=20,
+        choices=VACCINE_TYPES,
+        help_text="백신 종류"
+    )
+    vaccine_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="백신명 (상세)"
+    )
+    vaccination_date = models.DateField(
+        help_text="접종일"
+    )
+    next_due_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="다음 접종 예정일"
+    )
+    hospital_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="접종 병원"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="메모"
+    )
+    reminder_sent = models.BooleanField(
+        default=False,
+        help_text="알림 발송 여부"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'pet_vaccinations'
+        verbose_name = '예방접종'
+        verbose_name_plural = '예방접종 목록'
+        ordering = ['-vaccination_date']
+
+    def __str__(self):
+        return f"{self.pet.name} - {self.get_vaccine_type_display()} ({self.vaccination_date})"
+
+
+class HealthRecord(models.Model):
+    """건강 기록 모델 (체중, 건강상태 등)"""
+    pet = models.ForeignKey(
+        Pet,
+        on_delete=models.CASCADE,
+        related_name='health_records',
+        help_text="반려동물"
+    )
+    record_date = models.DateField(
+        help_text="기록일"
+    )
+    weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="체중 (kg)"
+    )
+    condition = models.CharField(
+        max_length=20,
+        choices=[
+            ('excellent', '매우 좋음'),
+            ('good', '좋음'),
+            ('normal', '보통'),
+            ('poor', '안좋음'),
+            ('sick', '아픔'),
+        ],
+        default='normal',
+        help_text="건강 상태"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="특이사항"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'pet_health_records'
+        verbose_name = '건강기록'
+        verbose_name_plural = '건강기록 목록'
+        ordering = ['-record_date']
+
+    def __str__(self):
+        return f"{self.pet.name} - {self.record_date}"
+
+
+class PetPhoto(models.Model):
+    """펫 앨범 사진 모델"""
+    pet = models.ForeignKey(
+        Pet,
+        on_delete=models.CASCADE,
+        related_name='photos',
+        help_text="반려동물"
+    )
+    image = models.ImageField(
+        upload_to='pet_photos/',
+        help_text="사진"
+    )
+    caption = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="사진 설명"
+    )
+    taken_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="촬영일"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'pet_photos'
+        verbose_name = '펫 사진'
+        verbose_name_plural = '펫 사진 목록'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.pet.name} - {self.created_at.strftime('%Y-%m-%d')}"

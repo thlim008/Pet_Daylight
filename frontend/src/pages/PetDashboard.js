@@ -13,7 +13,7 @@ function PetDashboard() {
 
   useEffect(() => {
     loadMyPets();
-    loadAdoptionGuides(); // 입양 가이드 미리 로드
+    loadAdoptionGuides();
   }, []);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ function PetDashboard() {
       const response = await API.get('/lifecycles/pets/');
       const pets = response.data.results || response.data;
       setMyPets(pets);
-      
+
       if (pets.length > 0) {
         setSelectedPet(pets[0]);
       }
@@ -120,9 +120,9 @@ function PetDashboard() {
               onClick={() => navigate('/')}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <img 
-                src="/logo.png" 
-                alt="Pet Daylight" 
+              <img
+                src="/logo.png"
+                alt="Pet Daylight"
                 className="w-14 h-14 object-contain drop-shadow-md"
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -179,7 +179,7 @@ function PetDashboard() {
                   맞춤 케어 가이드를 받을 수 있어요.
                 </p>
                 <button
-                  onClick={() => navigate('/lifecycles/pets/new')}
+                  onClick={() => navigate(`/lifecycles/pets/new`)}
                   className="px-8 py-4 bg-amber-500 text-white text-lg rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg hover:shadow-xl"
                 >
                   🐾 반려동물 등록하기
@@ -231,7 +231,7 @@ function PetDashboard() {
                         <h4 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">
                           {guide.title}
                         </h4>
-                        
+
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                           {guide.description}
                         </p>
@@ -268,7 +268,7 @@ function PetDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">🐾 우리 가족</h2>
                 <button
-                  onClick={() => navigate('/lifecycles/pets/new')}
+                  onClick={() => navigate(`/lifecycles/pets/new`)}
                   className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
                 >
                   + 새 가족 추가
@@ -287,8 +287,8 @@ function PetDashboard() {
                     }`}
                   >
                     {pet.profile_image ? (
-                      <img 
-                        src={pet.profile_image} 
+                      <img
+                        src={pet.profile_image}
                         alt={pet.name}
                         className="w-32 h-32 rounded-full object-cover mx-auto mb-3 border-4 border-white shadow-md"
                       />
@@ -299,11 +299,11 @@ function PetDashboard() {
                         </span>
                       </div>
                     )}
-                    
+
                     <h3 className="text-xl font-bold text-center text-gray-900 mb-1">
                       {pet.name}
                     </h3>
-                    
+
                     <div className="text-center space-y-1">
                       <p className="text-sm text-gray-600">
                         {pet.breed || '믹스'}
@@ -343,12 +343,38 @@ function PetDashboard() {
                           {selectedPet.name}에게 맞는 케어 가이드를 확인해보세요
                         </p>
                       </div>
-                      <button
-                        onClick={() => navigate(`/lifecycles/pets/${selectedPet.id}/edit`)}
-                        className="px-4 py-2 bg-white text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all border border-gray-200"
-                      >
-                        ✏️ 정보 수정
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => navigate(`/pets/${selectedPet.id}/visits`)}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-all"
+                        >
+                          🏥 진료기록
+                        </button>
+                        <button
+                          onClick={() => navigate(`/pets/${selectedPet.id}/vaccinations`)}
+                          className="px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-all"
+                        >
+                          💉 예방접종
+                        </button>
+                        <button
+                          onClick={() => navigate(`/pets/${selectedPet.id}/health`)}
+                          className="px-4 py-2 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-all"
+                        >
+                          📊 건강기록
+                        </button>
+                        <button
+                          onClick={() => navigate(`/pets/${selectedPet.id}/album`)}
+                          className="px-4 py-2 bg-pink-500 text-white rounded-xl font-medium hover:bg-pink-600 transition-all"
+                        >
+                          📷 앨범
+                        </button>
+                        <button
+                          onClick={() => navigate(`/lifecycles/pets/${selectedPet.id}/edit`)}
+                          className="px-4 py-2 bg-white text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all border border-gray-200"
+                        >
+                          ✏️ 정보 수정
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -385,7 +411,7 @@ function PetDashboard() {
                       <div className="bg-white rounded-xl p-4 border border-amber-200">
                         <p className="text-xs text-gray-500 mb-1">함께한 날</p>
                         <p className="text-2xl font-bold text-gray-900">
-                          {selectedPet.adoption_date 
+                          {selectedPet.adoption_date
                             ? Math.floor((new Date() - new Date(selectedPet.adoption_date)) / (1000 * 60 * 60 * 24))
                             : '?'}
                         </p>
@@ -467,7 +493,7 @@ function PetDashboard() {
                             <h4 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">
                               {guide.title}
                             </h4>
-                            
+
                             <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                               {guide.description}
                             </p>

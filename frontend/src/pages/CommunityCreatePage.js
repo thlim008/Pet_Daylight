@@ -22,7 +22,7 @@ function CommunityCreatePage() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (files.length > 5) {
       setError('이미지는 최대 5장까지 업로드 가능합니다.');
       return;
@@ -37,7 +37,7 @@ function CommunityCreatePage() {
   const removeImage = (index) => {
     const newImages = images.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
+
     setImages(newImages);
     setImagePreviews(newPreviews);
   };
@@ -64,7 +64,7 @@ function CommunityCreatePage() {
       data.append('category', formData.category);
       data.append('title', formData.title);
       data.append('content', formData.content);
-      
+
       images.forEach((image) => {
         data.append('uploaded_images', image);
       });
@@ -86,7 +86,7 @@ function CommunityCreatePage() {
     } catch (err) {
       console.error('⛔ 게시글 등록 실패:', err);
       console.error('⛔ 에러 응답:', err.response?.data);
-      
+
       if (err.response?.data) {
         const errors = err.response.data;
         const errorMessages = Object.entries(errors)
@@ -107,7 +107,7 @@ function CommunityCreatePage() {
       'found_story': { emoji: '✅', label: '발견 후기', desc: '반려동물을 발견한 이야기를 들려주세요' },
       'rescue_story': { emoji: '🏥', label: '구조 경험담', desc: '반려동물 구조 경험을 나눠주세요' },
       'tips': { emoji: '💡', label: '꿀팁 공유', desc: '유용한 정보와 팁을 공유해주세요' },
-      'lifecycle': { emoji: '�', label: '생애주기 경험', desc: '반려동물의 성장 과정을 기록해주세요' },
+      'lifecycle': { emoji: '🐾', label: '생애주기', desc: '반려동물의 성장 과정을 기록해주세요' },
     };
     return categories[formData.category] || categories['tips'];
   };
@@ -123,9 +123,9 @@ function CommunityCreatePage() {
               onClick={() => navigate('/')}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <img 
-                src="/logo.png" 
-                alt="Pet Daylight" 
+              <img
+                src="/logo.png"
+                alt="Pet Daylight"
                 className="w-14 h-14 object-contain drop-shadow-md"
                 onError={(e) => {
                   console.error('헤더 로고 로드 실패');
@@ -179,7 +179,7 @@ function CommunityCreatePage() {
                   { value: 'found_story', emoji: '✅', label: '발견 후기' },
                   { value: 'rescue_story', emoji: '🏥', label: '구조 경험담' },
                   { value: 'tips', emoji: '💡', label: '꿀팁 공유' },
-                  { value: 'lifecycle', emoji: '�', label: '생애주기' },
+                  { value: 'lifecycle', emoji: '🐾', label: '생애주기' },
                 ].map((cat) => (
                   <label key={cat.value} className="flex-1">
                     <input

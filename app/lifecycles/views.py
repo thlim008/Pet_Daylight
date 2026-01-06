@@ -270,3 +270,106 @@ class PetViewSet(viewsets.ModelViewSet):
             'stage_label': dict(LifecycleGuide.STAGE_CHOICES).get(stage, stage),
             'guides': serializer.data
         })
+
+class VaccinationViewSet(viewsets.ModelViewSet):
+    """예방접종 기록 ViewSet"""
+    permission_classes = [IsAuthenticated]
+    ordering = ['-vaccination_date']
+
+    def get_serializer_class(self):
+        from .serializers import VaccinationSerializer
+        return VaccinationSerializer
+
+    def get_queryset(self):
+        from .models import Vaccination
+        queryset = Vaccination.objects.filter(pet__user=self.request.user)
+        
+        # 펫 필터
+        pet_id = self.request.query_params.get('pet')
+        if pet_id:
+            queryset = queryset.filter(pet_id=pet_id)
+        
+        return queryset.order_by('-vaccination_date')
+
+    def perform_create(self, serializer):
+        # 본인의 펫인지 확인
+        pet = serializer.validated_data.get('pet')
+        if pet.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('본인의 반려동물만 등록할 수 있습니다.')
+        serializer.save()
+
+
+class HealthRecordViewSet(viewsets.ModelViewSet):
+    """건강 기록 ViewSet"""
+    permission_classes = [IsAuthenticated]
+    ordering = ['-record_date']
+
+    def get_serializer_class(self):
+        from .serializers import HealthRecordSerializer
+        return HealthRecordSerializer
+
+    def get_queryset(self):
+        from .models import HealthRecord
+        queryset = HealthRecord.objects.filter(pet__user=self.request.user)
+        
+        # 펫 필터
+        pet_id = self.request.query_params.get('pet')
+        if pet_id:
+            queryset = queryset.filter(pet_id=pet_id)
+        
+        return queryset.order_by('-record_date')
+
+    def perform_create(self, serializer):
+        pet = serializer.validated_data.get('pet')
+        if pet.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('본인의 반려동물만 등록할 수 있습니다.')
+        serializer.save()
+
+    @action(detail=False, methods=['get'])
+    def weight_history(self, request):
+        """
+        체중 변화 히스토리 (그래프용)
+        GET /api/lifecycles/health-records/weight_history/?pet=1
+        """
+        from .models import HealthRecord
+        pet_id = request.query_params.get('pet')
+        if not pet_id:
+            return Response({'error': 'pet 파라미터가 필요합니다.'}, status=400)
+        
+        records = HealthRecord.objects.filter(
+            pet_id=pet_id,
+            pet__user=request.user,
+            weight__isnull=False
+        ).order_by('record_date').values('record_date', 'weight')
+        
+        return Response(list(records))
+
+
+class PetPhotoViewSet(viewsets.ModelViewSet):
+    """펫 앨범 ViewSet"""
+    permission_classes = [IsAuthenticated]
+    ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        from .serializers import PetPhotoSerializer
+        return PetPhotoSerializer
+
+    def get_queryset(self):
+        from .models import PetPhoto
+        queryset = PetPhoto.objects.filter(pet__user=self.request.user)
+        
+        # 펫 필터
+        pet_id = self.request.query_params.get('pet')
+        if pet_id:
+            queryset = queryset.filter(pet_id=pet_id)
+        
+        return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        pet = serializer.validated_data.get('pet')
+        if pet.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('본인의 반려동물만 등록할 수 있습니다.')
+        serializer.save()

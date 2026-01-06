@@ -18,7 +18,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // 🔥 비밀번호 변경 상태 추가
+  // 비밀번호 변경 상태
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordData, setPasswordData] = useState({
     current_password: '',
@@ -29,8 +29,26 @@ function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
+  // 내 활동 상태
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'comments', 'reports', 'reviews'
+  const [myPosts, setMyPosts] = useState([]);
+  const [myComments, setMyComments] = useState([]);
+  const [myReports, setMyReports] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
+  const [myReportComments, setMyReportComments] = useState([]);
+  const [reportCommentsLoading, setReportCommentsLoading] = useState(false);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   useEffect(() => {
     loadUser();
+    loadMyPosts();
+    loadMyComments();
+    loadMyReports();
+    loadMyReviews();
+    loadMyReportComments();
   }, []);
 
   const loadUser = async () => {
@@ -53,6 +71,81 @@ function ProfilePage() {
     }
   };
 
+  // 내가 쓴 글 로드
+  const loadMyPosts = async () => {
+    try {
+      setPostsLoading(true);
+      const response = await API.get('/communities/', {
+        params: { my_posts: true }
+      });
+      setMyPosts(response.data.results || response.data);
+    } catch (err) {
+      console.error('내 게시글 로드 실패:', err);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  // 내가 쓴 댓글 로드
+  const loadMyComments = async () => {
+    try {
+      setCommentsLoading(true);
+      const response = await API.get('/communities/comments/', {
+        params: { my_comments: true }
+      });
+      setMyComments(response.data.results || response.data);
+    } catch (err) {
+      console.error('내 댓글 로드 실패:', err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  // 내 실종 제보 로드
+  const loadMyReports = async () => {
+    try {
+      setReportsLoading(true);
+      const response = await API.get('/missing-pets/', {
+        params: { my_reports: true }
+      });
+      setMyReports(response.data.results || response.data);
+    } catch (err) {
+      console.error('내 실종 제보 로드 실패:', err);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  // 내 병원 리뷰 로드
+  const loadMyReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const response = await API.get('/hospitals/reviews/', {
+        params: { my_reviews: true }
+      });
+      setMyReviews(response.data.results || response.data);
+    } catch (err) {
+      console.error('내 리뷰 로드 실패:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // 내 실종 제보 댓글 로드
+  const loadMyReportComments = async () => {
+    try {
+      setReportCommentsLoading(true);
+      const response = await API.get('/missing-pets/comments/', {
+        params: { my_comments: true }
+      });
+      setMyReportComments(response.data.results || response.data);
+    } catch (err) {
+      console.error('내 실종 제보 댓글 로드 실패:', err);
+    } finally {
+      setReportCommentsLoading(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -71,7 +164,7 @@ function ProfilePage() {
       setMessage('프로필이 업데이트되었습니다! ✅');
       setEditing(false);
       await loadUser();
-      
+
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       console.error('프로필 업데이트 실패:', err);
@@ -81,14 +174,12 @@ function ProfilePage() {
     }
   };
 
-  // 🔥 비밀번호 변경 핸들러
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPasswordLoading(true);
     setPasswordError('');
     setPasswordSuccess(false);
 
-    // 클라이언트 측 검증
     if (passwordData.new_password !== passwordData.new_password_confirm) {
       setPasswordError('새 비밀번호가 일치하지 않습니다.');
       setPasswordLoading(false);
@@ -104,25 +195,24 @@ function ProfilePage() {
     try {
       const response = await API.post('/accounts/password_change/', passwordData);
       console.log('✅ 비밀번호 변경 성공:', response.data);
-      
+
       setPasswordSuccess(true);
       setPasswordData({
         current_password: '',
         new_password: '',
         new_password_confirm: '',
       });
-      
-      // 3초 후 섹션 닫기
+
       setTimeout(() => {
         setShowPasswordChange(false);
         setPasswordSuccess(false);
       }, 3000);
     } catch (err) {
       console.error('❌ 비밀번호 변경 실패:', err);
-      
+
       if (err.response?.data) {
         const errorData = err.response.data;
-        
+
         if (errorData.current_password) {
           setPasswordError('현재 비밀번호가 일치하지 않습니다.');
         } else if (errorData.new_password_confirm) {
@@ -148,6 +238,50 @@ function ProfilePage() {
     navigate('/login');
   };
 
+  const getCategoryEmoji = (category) => {
+    const emojis = {
+      free: '📍',
+      found_story: '✅',
+      rescue_story: '🏥',
+      tips: '💡',
+      lifecycle: '🐾',
+    };
+    return emojis[category] || '📌';
+  };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      free: '자유게시판',
+      found_story: '발견 후기',
+      rescue_story: '구조 경험담',
+      tips: '꿀팁 공유',
+      lifecycle: '생애주기',
+    };
+    return labels[category] || category;
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      missing: { label: '실종', color: 'bg-red-100 text-red-700' },
+      found: { label: '발견', color: 'bg-green-100 text-green-700' },
+      rescued: { label: '구조완료', color: 'bg-blue-100 text-blue-700' },
+    };
+    return badges[status] || badges.missing;
+  };
+
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+
+    return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
@@ -168,9 +302,9 @@ function ProfilePage() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img 
-                src="/logo.png" 
-                alt="Pet Daylight" 
+              <img
+                src="/logo.png"
+                alt="Pet Daylight"
                 className="w-14 h-14 object-contain drop-shadow-md"
                 onError={(e) => {
                   console.error('헤더 로고 로드 실패');
@@ -277,13 +411,13 @@ function ProfilePage() {
                 />
                 <label className="text-sm font-medium text-gray-700">알림 받기</label>
               </div>
-              {/* 🔔 알림 거리 설정 */}
+
               {formData.notification_enabled && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     알림 거리 설정
                   </label>
-              
+
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500">1km</span>
                     <span className="text-sm font-semibold text-gray-900">
@@ -291,7 +425,7 @@ function ProfilePage() {
                     </span>
                     <span className="text-xs text-gray-500">20km</span>
                   </div>
-              
+
                   <input
                     type="range"
                     min={1000}
@@ -350,18 +484,19 @@ function ProfilePage() {
                   {user.notification_enabled ? '활성화' : '비활성화'}
                 </span>
               </div>
-              {user.notification_enabled && (<div className="flex items-center justify-between py-3">
-                <span className="text-sm text-gray-600">알림 거리</span>
-                <span className="font-medium text-gray-900">
-                {(Number(user.notification_distance) / 1000).toFixed(0)}km
-                </span>
-              </div>
+              {user.notification_enabled && (
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm text-gray-600">알림 거리</span>
+                  <span className="font-medium text-gray-900">
+                    {(Number(user.notification_distance) / 1000).toFixed(0)}km
+                  </span>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* 🔥 비밀번호 변경 섹션 */}
+        {/* 비밀번호 변경 섹션 */}
         <div className="bg-white rounded-2xl p-8 border border-gray-200 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -370,7 +505,6 @@ function ProfilePage() {
             </div>
           </div>
 
-          {/* 소셜 로그인 계정 안내 */}
           {user.is_social_account && (
             <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
               <div className="flex items-start space-x-4">
@@ -391,8 +525,8 @@ function ProfilePage() {
                       <strong>🔒 비밀번호 관리:</strong>
                     </p>
                     <p className="text-xs text-blue-600">
-                      소셜 로그인 계정은 Pet Daylight에서 비밀번호를 관리하지 않습니다. 
-                      비밀번호를 변경하려면 {user.social_providers?.map(p => p.toUpperCase()).join(', ')} 
+                      소셜 로그인 계정은 Pet Daylight에서 비밀번호를 관리하지 않습니다.
+                      비밀번호를 변경하려면 {user.social_providers?.map(p => p.toUpperCase()).join(', ')}
                       계정 설정에서 변경해주세요.
                     </p>
                   </div>
@@ -401,7 +535,6 @@ function ProfilePage() {
             </div>
           )}
 
-          {/* 일반 계정 비밀번호 변경 */}
           {user.can_change_password && (
             <>
               {!showPasswordChange ? (
@@ -511,6 +644,260 @@ function ProfilePage() {
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* 내 활동 섹션 */}
+        <div className="bg-white rounded-2xl p-8 border border-gray-200">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">내 활동</h2>
+            <p className="text-sm text-gray-600">커뮤니티, 실종 제보, 병원 리뷰 활동을 확인하세요</p>
+          </div>
+
+          {/* 탭 */}
+          <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('posts')}
+              className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
+                activeTab === 'posts'
+                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              커뮤니티 글 ({myPosts.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
+                activeTab === 'comments'
+                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              댓글 ({myComments.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
+                activeTab === 'reports'
+                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              실종/발견/구조 글 ({myReports.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('reportComments')}
+              className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
+                activeTab === 'reportComments'
+                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              실종/발견/구조 댓글 ({myReportComments.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
+                activeTab === 'reviews'
+                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              병원 리뷰 ({myReviews.length})
+            </button>
+          </div>
+
+          {/* 커뮤니티 글 */}
+          {activeTab === 'posts' && (
+            <div className="space-y-4">
+              {postsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
+                </div>
+              ) : myPosts.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">📝</p>
+                  <p className="text-gray-600">작성한 글이 없습니다</p>
+                </div>
+              ) : (
+                myPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    onClick={() => navigate(`/communities/${post.id}`)}
+                    className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{getCategoryEmoji(post.category)}</span>
+                        <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                          {getCategoryLabel(post.category)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">{formatDate(post.created_at)}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{post.title}</h3>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">{post.content}</p>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span>👁️ {post.views || 0}</span>
+                      <span>💬 {post.comment_count || 0}</span>
+                      <span>❤️ {post.likes_count || 0}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 댓글 */}
+          {activeTab === 'comments' && (
+            <div className="space-y-4">
+              {commentsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
+                </div>
+              ) : myComments.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">💬</p>
+                  <p className="text-gray-600">작성한 댓글이 없습니다</p>
+                </div>
+              ) : (
+                myComments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    onClick={() => navigate(`/communities/${comment.post}`)}
+                    className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        게시글: {comment.post_title || `#${comment.post}`}
+                      </span>
+                      <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-gray-900">{comment.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 실종 제보 */}
+          {activeTab === 'reports' && (
+            <div className="space-y-4">
+              {reportsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
+                </div>
+              ) : myReports.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">🔍</p>
+                  <p className="text-gray-600">작성한 실종/발견/구조 글이 없습니다</p>
+                </div>
+              ) : (
+                myReports.map((report) => (
+                  <div
+                    key={report.id}
+                    onClick={() => navigate(`/missing-pets/${report.id}`)}
+                    className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4">
+                      {report.photo && (
+                        <img
+                          src={report.photo}
+                          alt={report.pet_name}
+                          className="w-20 h-20 rounded-xl object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-lg font-bold text-gray-900">{report.pet_name}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(report.status).color}`}>
+                            {getStatusBadge(report.status).label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{report.breed} · {report.species === 'dog' ? '강아지' : '고양이'}</p>
+                        <p className="text-xs text-gray-500">📍 {report.location}</p>
+                        <p className="text-xs text-gray-500 mt-1">{formatDate(report.last_seen_date)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 제보 댓글 */}
+          {activeTab === 'reportComments' && (
+            <div className="space-y-4">
+              {reportCommentsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
+                </div>
+              ) : myReportComments.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">💬</p>
+                  <p className="text-gray-600">작성한 실종/발견/구조 댓글이 없습니다</p>
+                </div>
+              ) : (
+                myReportComments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    onClick={() => navigate(`/missing-pets/${comment.missing_pet}`)}
+                    className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        제보글: {comment.missing_pet_name || `#${comment.missing_pet}`}
+                      </span>
+                      <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-gray-900">{comment.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 병원 리뷰 */}
+          {activeTab === 'reviews' && (
+            <div className="space-y-4">
+              {reviewsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
+                </div>
+              ) : myReviews.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">⭐</p>
+                  <p className="text-gray-600">작성한 리뷰가 없습니다</p>
+                </div>
+              ) : (
+                myReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    onClick={() => navigate(`/hospitals/${review.hospital}`)}
+                    className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">
+                          {review.hospital_name || '병원'}
+                        </h3>
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < review.rating ? 'text-amber-400' : 'text-gray-300'}>
+                              ⭐
+                            </span>
+                          ))}
+                          <span className="text-sm text-gray-600 ml-2">({review.rating}점)</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-gray-700">{review.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
       </main>
