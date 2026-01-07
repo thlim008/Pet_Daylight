@@ -146,7 +146,7 @@ Pet_Daylight/
 
 각 모듈별 상세 문서는 다음 파일을 참조하세요:
 
-- [Backend 개발 가이드](./BACKEND_README.md)
+- [Backend 개발 가이드](./app/README.md)
 - [Frontend 개발 가이드](./frontend/README.md)
 - [Monitoring 설정 가이드](./monitoring/README.md)
 
@@ -202,4 +202,5 @@ npm test
 ---
 
 Made with ❤️ for pet lovers
+
 
