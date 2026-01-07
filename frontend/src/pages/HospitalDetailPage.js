@@ -220,7 +220,7 @@ function HospitalDetailPage() {
             )}
             {!hospital.is_24_hours && (!hospital.opening_hours || Object.keys(hospital.opening_hours).length === 0) && (
               <span className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                ℹ️ 진료시간 미제공
+               ℹ️ {hospital.type === 'grooming' ? '영업시간 미제공' : '진료시간 미제공'}
               </span>
             )}
           </div>

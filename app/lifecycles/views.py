@@ -226,7 +226,36 @@ class PetViewSet(viewsets.ModelViewSet):
             'message': f'{pet.name}의 프로필이 비활성화되었습니다.',
             'is_active': pet.is_active
         })
-    
+    @action(detail=True, methods=['delete'], url_path='profile-image')
+    def delete_profile_image(self, request, pk=None):
+        """
+        프로필 사진 삭제
+        DELETE /api/lifecycles/pets/{id}/profile-image/
+        """
+        pet = self.get_object()
+        
+        # 본인 펫만 수정 가능
+        if pet.user != request.user:
+            return Response(
+                {'error': '본인의 반려동물만 수정할 수 있습니다.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 프로필 이미지 삭제
+        if pet.profile_image:
+            pet.profile_image.delete(save=False)
+            pet.profile_image = None
+            pet.save()
+            return Response(
+                {'message': '프로필 사진이 삭제되었습니다.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {'message': '삭제할 프로필 사진이 없습니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     @action(detail=True, methods=['get'])
     def recommended_guides(self, request, pk=None):
         """

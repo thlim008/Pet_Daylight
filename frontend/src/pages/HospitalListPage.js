@@ -470,7 +470,7 @@ function HospitalListPage() {
               onChange={(e) => handleFilterChange('is_open_now', e.target.value)}
               className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
             >
-              <option value="">진료시간 (전체)</option>
+              <option value="">운영시간 (전체)</option>
               <option value="true">지금 진료중</option>
               <option value="false">진료 종료</option>
             </select>
@@ -567,7 +567,7 @@ function HospitalListPage() {
                     )}
                     {!hospital.is_24_hours && !hospital.is_open_now && (!hospital.opening_hours || Object.keys(hospital.opening_hours).length === 0) && (
                       <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                        진료시간 미제공
+                        {hospital.type === 'grooming' ? '영업시간 미제공' : '진료시간 미제공'}
                       </span>
                     )}
                   </div>

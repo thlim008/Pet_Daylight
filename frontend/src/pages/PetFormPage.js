@@ -99,9 +99,23 @@ function PetFormPage() {
     }
   };
 
-  const removeImage = () => {
+  const removeImage = async () => {
+    // 수정 모드이고 기존 이미지가 있으면 서버에서 삭제
+    if (isEditMode && formData.profile_image) {
+      try {
+        await API.delete(`/lifecycles/pets/${id}/profile-image/`);
+        alert('프로필 사진이 삭제되었습니다.');
+      } catch (error) {
+        console.error('프로필 사진 삭제 실패:', error);
+        alert('프로필 사진 삭제에 실패했습니다.');
+        return;
+      }
+    }
+    
+    // 로컬 상태 초기화
     setImageFile(null);
     setImagePreview(null);
+    setFormData(prev => ({ ...prev, profile_image: null }));
   };
 
   const handleSubmit = async (e) => {
