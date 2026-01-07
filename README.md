@@ -140,7 +140,6 @@ Pet_Daylight/
 - **Containerization**: Docker, Docker Compose
 - **Web Server**: Nginx
 - **Process Management**: Gunicorn
-- **CI/CD**: GitHub Actions (예정)
 
 ## 📚 상세 문서
 
@@ -202,5 +201,6 @@ npm test
 ---
 
 Made with ❤️ for pet lovers
+
 
 
