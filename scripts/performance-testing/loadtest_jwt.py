@@ -25,8 +25,8 @@ class AuthenticatedUser(HttpUser):
         # 🔥 여기를 수정하세요!
         # ===================================
         login_data = {
-            "username": "test",      # ← 실제 테스트 계정 아이디
-            "password": "testtest"   # ← 실제 테스트 계정 비밀번호
+            "username": "",      # ← 실제 테스트 계정 아이디
+            "password": ""   # ← 실제 테스트 계정 비밀번호
         }
         
         # 로그인 시도
