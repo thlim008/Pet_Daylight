@@ -363,36 +363,6 @@ groups:
             3) 세션/인증 시스템 이상
             4) 최근 인증 로직 변경 여부
 
-      # 4xx 에러율 급증 (클라이언트 오류)
-      - alert: High4xxErrorRate
-        expr: |
-          (
-            sum(rate(django_http_responses_total_by_status_view_method_total{
-              job="django",
-              view!="prometheus-django-metrics",
-              status=~"4.."
-            }[5m]))
-            /
-            sum(rate(django_http_responses_total_by_status_view_method_total{
-              job="django",
-              view!="prometheus-django-metrics"
-            }[5m]))
-          ) > 0.2
-        for: 10m
-        labels:
-          severity: warning
-          service: django
-        annotations:
-          summary: "⚠️ 4xx 에러율 높음: {{ $value | humanizePercentage }}"
-          description: |
-            최근 5분간 4xx 에러율이 20%를 초과했습니다.
-            현재 에러율: {{ $value | humanizePercentage }}
-            
-            가능한 원인:
-            1) API 스펙 변경으로 인한 클라이언트 호환성 문제
-            2) 잘못된 요청 증가
-            3) 프론트엔드 버그
-
   # ---------------------------
   # API 엔드포인트별 모니터링 (신규)
   # ---------------------------
@@ -793,3 +763,53 @@ groups:
             1) 권한 설정 변경
             2) CSRF 토큰 문제
             3) 비정상적인 접근 시도
+
+      # 4xx 에러율 급증 (전체) - 개선: 절대 개수 조건 추가
+      - alert: High4xxErrorRate
+        expr: |
+          (
+            (
+              sum(rate(django_http_responses_total_by_status_view_method_total{
+                job="django",
+                view!="prometheus-django-metrics",
+                status=~"4.."
+              }[5m]))
+              / 
+              sum(rate(django_http_responses_total_by_status_view_method_total{
+                job="django",
+                view!="prometheus-django-metrics"
+              }[5m]))
+            ) > 0.20
+            AND
+            sum(rate(django_http_responses_total_by_status_view_method_total{
+              job="django",
+              view!="prometheus-django-metrics",
+              status=~"4.."
+            }[5m])) * 300 > 10
+          )
+        for: 5m
+        labels:
+          severity: warning
+          service: django
+        annotations:
+          summary: "⚠️ 4xx 에러율 높음: {{ $value | humanizePercentage }}"
+          description: |
+            최근 5분간 4xx 에러율이 20%를 초과하고, 에러 발생 건수도 많습니다.
+            현재 에러율: {{ $value | humanizePercentage }}
+            
+            ✅ 개선된 알람 조건:
+            - 4xx 에러율 > 20% AND
+            - 5분간 4xx 에러 > 10건
+            (새벽처럼 트래픽 없을 때 오탐 방지)
+            
+            가능한 원인:
+            1) API 스펙 변경으로 인한 클라이언트 호환성 문제
+            2) 잘못된 요청 증가
+            3) 프론트엔드 버그
+            4) 인증/인가 문제
+            
+            확인 사항:
+            - 상태 코드별 분포 확인 (400/401/403/404)
+            - 가장 많이 실패하는 엔드포인트 확인
+            - 최근 배포 여부
+            - 프론트엔드 로그/에러
