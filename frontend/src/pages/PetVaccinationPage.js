@@ -52,10 +52,14 @@ function PetVaccinationPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!noNextDueDate && !formData.next_due_date) {
+          alert('다음 접종 예정일을 입력하거나, "예정일 없음"을 체크해주세요.');
+          return;
+      }
       const data = { 
         ...formData, 
         pet: petId,
-        next_due_date: noNextDueDate ? '' : formData.next_due_date
+        next_due_date: noNextDueDate ? null : formData.next_due_date || null
       };
       if (editingId) {
         await API.put(`/lifecycles/vaccinations/${editingId}/`, data);
