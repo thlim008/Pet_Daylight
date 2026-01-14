@@ -19,8 +19,28 @@ SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = [
+    # 로컬 개발
+    'localhost',
+    '127.0.0.1',
+    
+    # 프로덕션 도메인
+    'petdaylight.mooo.com',  # nginx.conf + Grafana ROOT_URL
+    
+    # AWS EC2
+    'ec2-54-180-108-120.ap-northeast-2.compute.amazonaws.com',
+    '54.180.108.120',
+    
+    # Docker 내부 네트워크
+    'backend',  # ← prometheus.yml에서 backend:8000으로 수집!
+    'petdaylight-backend',  # container_name
+    
+    # Monitoring Stack (혹시 몰라서)
+    'prometheus',
+    'grafana',
+]
+if DEBUG:
+    ALLOWED_HOSTS += ['0.0.0.0', '*']
 
 # Application definition
 

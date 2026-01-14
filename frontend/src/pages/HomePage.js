@@ -46,7 +46,7 @@ function HomePage() {
       } else {
         const token = localStorage.getItem('access_token');
         console.log('🔍 로컬스토리지 토큰:', token ? '있음' : '없음');
-        
+
         if (token) {
           await loadUser();
         } else {
@@ -79,9 +79,9 @@ function HomePage() {
           <div className="flex items-center justify-between">
             {/* 로고 + 타이틀 */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <img 
-                src="/logo.png" 
-                alt="Pet Daylight" 
+              <img
+                src="/logo.png"
+                alt="Pet Daylight"
                 className="w-10 h-10 sm:w-14 sm:h-14 object-contain drop-shadow-md"
                 onError={(e) => {
                   console.error('헤더 로고 로드 실패');
@@ -102,14 +102,14 @@ function HomePage() {
             <div className="hidden md:flex items-center space-x-3">
               <NotificationDropdown />
               {user && (
-                <button 
+                <button
                   onClick={() => navigate('/profile')}
                   className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
                 >
                   {user.display_image ? (
-                    <img 
-                      src={user.display_image} 
-                      alt="프로필" 
+                    <img
+                      src={user.display_image}
+                      alt="프로필"
                       className="w-8 h-8 rounded-full border-2 border-gray-200 object-cover"
                     />
                   ) : (
@@ -134,14 +134,14 @@ function HomePage() {
             <div className="flex md:hidden items-center space-x-2">
               <NotificationDropdown />
               {user && (
-                <button 
+                <button
                   onClick={() => navigate('/profile')}
                   className="hover:opacity-80 transition-opacity"
                 >
                   {user.display_image ? (
-                    <img 
-                      src={user.display_image} 
-                      alt="프로필" 
+                    <img
+                      src={user.display_image}
+                      alt="프로필"
                       className="w-8 h-8 rounded-full border-2 border-gray-200 object-cover"
                     />
                   ) : (
@@ -156,10 +156,10 @@ function HomePage() {
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 aria-label="메뉴"
               >
-                <svg 
-                  className="w-6 h-6 text-gray-700" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-6 h-6 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   {isMobileMenuOpen ? (
@@ -194,9 +194,9 @@ function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           {/* 큰 로고 */}
           <div className="flex justify-center mb-8">
-            <img 
-              src="/logo.png" 
-              alt="Pet Daylight" 
+            <img
+              src="/logo.png"
+              alt="Pet Daylight"
               className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain drop-shadow-2xl"
               onError={(e) => {
                 console.error('Hero 로고 로드 실패');
@@ -208,30 +208,30 @@ function HomePage() {
               }}
             />
           </div>
-                  
+
           {/* 제목 */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight text-gray-900">
             실종된 반려동물을<br />함께 찾아요
           </h1>
-                  
+
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 mb-8 sm:mb-10 md:mb-12 px-4">
             우리 동네 실종 제보를 확인하고, 커뮤니티와 함께 소중한 가족을 찾아주세요
           </p>
-                  
+
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-            <button 
+            <button
               onClick={() => navigate('/missing-pets/create')}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-900 text-white rounded-xl text-sm sm:text-base font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl"
             >
               제보 등록하기
             </button>
-            <button 
+            <button
               onClick={() => navigate('/missing-pets')}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white border-2 border-gray-200 text-gray-900 rounded-xl text-sm sm:text-base font-medium hover:border-gray-300 hover:shadow-md transition-all"
             >
               주변 제보 보기
             </button>
-            <button 
+            <button
               onClick={() => navigate('/missing-pets/map')}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 text-white rounded-xl text-sm sm:text-base font-medium hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
             >
@@ -279,10 +279,11 @@ function HomePage() {
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">
                 Pet Daylight와 함께하세요
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-                <div 
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 md:gap-8">
+                {/* 실종 제보 카드 */}
+                <div
                   onClick={() => navigate('/missing-pets')}
-                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
                     <span className="text-xl sm:text-2xl">🔍</span>
@@ -290,20 +291,15 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     실종 제보
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    실종된 반려동물 정보를  
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    등록하고 주변 사람들과
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    공유하세요
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                    실종 정보를 등록하고 공유하세요
                   </p>
                 </div>
 
-                <div 
+                {/* 커뮤니티 카드 */}
+                <div
                   onClick={() => navigate('/communities')}
-                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
                     <span className="text-xl sm:text-2xl">💬</span>
@@ -311,14 +307,15 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     커뮤니티
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
                     반려동물 관련 정보와 경험을 나누는 따뜻한 커뮤니티
                   </p>
                 </div>
 
-                <div 
+                {/* 내 펫 관리 카드 */}
+                <div
                   onClick={() => navigate('/dashboard')}
-                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
                     <span className="text-xl sm:text-2xl">🐾</span>
@@ -326,18 +323,15 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     내 펫 관리
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    우리 가족 반려동물의 건강과 
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    생애주기를 관리하세요
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                    반려동물의 건강과 생애주기를 관리하세요
                   </p>
                 </div>
 
-                {/* 🏥 새로 추가: 병원/미용 찾기 */}
-                <div 
+                {/* 병원/미용 찾기 카드 */}
+                <div
                   onClick={() => navigate('/hospitals')}
-                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer"
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
                     <span className="text-xl sm:text-2xl">🏥</span>
@@ -345,9 +339,28 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     병원/미용 찾기
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    주변 동물병원과 애견미용실을 찾고 리뷰를 확인하세요
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+		    주변 병원과 미용실을 찾고 리뷰를 확인하세요
                   </p>
+                </div>
+
+                {/* AI 증상 체커 카드 */}
+                <div
+                  onClick={() => navigate('/symptom-checker')}
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
+                >
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
+                    <span className="text-xl sm:text-2xl">🩺</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
+                    AI 증상 체커
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                    반려동물 증상을 AI와 상담하고 조언을 받아보세요
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-amber-100 text-green-700 text-xs rounded-full w-fit">
+                    BETA
+                  </span>
                 </div>
               </div>
             </div>
@@ -358,9 +371,9 @@ function HomePage() {
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 border border-amber-100 shadow-sm">
                 <div className="text-center mb-8">
                   {user.display_image ? (
-                    <img 
-                      src={user.display_image} 
-                      alt="프로필" 
+                    <img
+                      src={user.display_image}
+                      alt="프로필"
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto mb-4 sm:mb-6 border-4 border-white shadow-lg object-cover"
                     />
                   ) : (
@@ -368,15 +381,15 @@ function HomePage() {
                       <span className="text-3xl sm:text-4xl">👤</span>
                     </div>
                   )}
-                  
+
                   <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
                     환영합니다, {user.display_name}님 🎉
                   </h2>
-                  
+
                   <p className="text-base sm:text-lg text-gray-600 mb-2">
                     {user.email}
                   </p>
-                  
+
                   {user.nickname && user.nickname !== user.username && (
                     <p className="text-sm text-gray-500 mb-4">
                       닉네임: {user.nickname}
@@ -412,9 +425,9 @@ function HomePage() {
       <footer className="bg-gray-900 text-white py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-            <img 
-              src="/logo.png" 
-              alt="Pet Daylight" 
+            <img
+              src="/logo.png"
+              alt="Pet Daylight"
               className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-md"
               onError={(e) => {
                 console.error('Footer 로고 로드 실패');

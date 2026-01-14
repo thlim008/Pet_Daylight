@@ -10,7 +10,9 @@ from .serializers import (
     PetListSerializer,
     UserChecklistProgressSerializer
 )
-
+from rest_framework.views import APIView
+from django.conf import settings
+import requests
 
 class LifecycleGuideViewSet(viewsets.ReadOnlyModelViewSet):
     """생애주기 가이드 ViewSet (읽기 전용)"""
@@ -402,3 +404,108 @@ class PetPhotoViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('본인의 반려동물만 등록할 수 있습니다.')
         serializer.save()
+
+class SymptomCheckerView(APIView):
+    """AI 증상 체커 챗봇 (OpenRouter)"""
+    permission_classes = [IsAuthenticated]
+    
+    SYSTEM_PROMPT = """너는 반려동물 건강 상담 도우미 '펫닥터'야.
+    
+역할:
+- 반려동물(강아지, 고양이 등)의 증상을 듣고 가능한 원인과 간단한 조언을 제공해
+- 이미지가 제공되면 사진을 분석해서 증상을 파악해
+- 친근하고 따뜻한 말투를 사용해
+- 이모지를 적절히 사용해서 친근감을 줘
+
+중요 규칙:
+1. 절대 확정적인 진단을 내리지 마. "~일 수 있어요", "~가 의심돼요" 같은 표현 사용
+2. 다음 증상은 반드시 즉시 병원 방문을 권유해:
+   - 호흡 곤란, 의식 저하, 경련, 대량 출혈, 중독 의심, 24시간 이상 구토/설사
+3. 응답은 300자 이내로 간결하게
+4. 마지막에 항상 "더 궁금한 점이 있으면 물어봐 주세요!" 같은 후속 질문 유도
+
+면책: 이 서비스는 의료 조언을 대체하지 않습니다."""
+
+    def post(self, request):
+        user_message = request.data.get('message', '')
+        pet_info = request.data.get('pet_info', None)
+        conversation_history = request.data.get('history', [])
+        image_data = request.data.get('image', None)
+        
+        if not user_message and not image_data:
+            return Response(
+                {'error': '메시지를 입력해주세요.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
+        if not api_key:
+            return Response(
+                {'error': 'AI 서비스가 설정되지 않았습니다.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
+        try:
+            system_prompt = self.SYSTEM_PROMPT
+            if pet_info:
+                pet_details = f"\n\n현재 상담 중인 반려동물 정보:"
+                pet_details += f"\n- 이름: {pet_info.get('name', '알 수 없음')}"
+                pet_details += f"\n- 종류: {pet_info.get('species', '알 수 없음')}"
+                pet_details += f"\n- 품종: {pet_info.get('breed', '알 수 없음')}"
+                pet_details += f"\n- 나이: {pet_info.get('age', '알 수 없음')}"
+                if pet_info.get('weight'):
+                    pet_details += f"\n- 체중: {pet_info.get('weight')}"
+                if pet_info.get('gender'):
+                    pet_details += f"\n- 성별: {pet_info.get('gender')}"
+                if pet_info.get('is_neutered'):
+                    pet_details += f"\n- 중성화: {pet_info.get('is_neutered')}"
+                system_prompt += pet_details
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            for msg in conversation_history[-10:]:
+                messages.append({
+                    "role": msg.get('role', 'user'),
+                    "content": msg.get('content', '')
+                })
+            
+            if image_data:
+                content = []
+                if user_message:
+                    content.append({"type": "text", "text": user_message})
+                else:
+                    content.append({"type": "text", "text": "이 사진에서 반려동물의 증상을 분석해주세요."})
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": image_data}
+                })
+                messages.append({"role": "user", "content": content})
+            else:
+                messages.append({"role": "user", "content": user_message})
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'model': 'google/gemini-2.0-flash-001',
+                    'max_tokens': 500,
+                    'messages': messages,
+                }
+            )
+            
+            data = response.json()
+            reply = data['choices'][0]['message']['content']
+            
+            return Response({
+                'reply': reply,
+                'disclaimer': '⚠️ 이 정보는 참고용이며, 정확한 진단은 수의사와 상담하세요.'
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'서버 오류: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

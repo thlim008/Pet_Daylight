@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-
+import { useLocation } from 'react-router-dom';
 function KakaoChannelButton() {
   const [isHovered, setIsHovered] = useState(false);
   
-  // ⚠️ 여기에 본인의 카카오톡 채널 URL을 넣으세요!
-  const kakaoChannelUrl = 'http://pf.kakao.com/_GMTyn/chat'; // ← 변경 필요!
-  
+  const kakaoChannelUrl = 'http://pf.kakao.com/_GMTyn/chat';  
+ 
   const handleClick = () => {
     window.open(kakaoChannelUrl, '_blank', 'width=400,height=600');
   };
+  const location = useLocation();
 
+  // 증상 체커 페이지에서는 숨기기
+  if (location.pathname === '/symptom-checker') {
+   return null;
+  }
   return (
     <>
       {/* 플로팅 버튼 */}

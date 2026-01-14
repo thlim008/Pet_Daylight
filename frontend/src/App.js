@@ -35,6 +35,8 @@ import PetHealthPage from './pages/PetHealthPage';
 import PetAlbumPage from './pages/PetAlbumPage';
 import PetVisitCreatePage from './pages/PetVisitCreatePage';
 
+
+import SymptomCheckerPage from './pages/SymptomCheckerPage';
 // PrivateRoute 컴포넌트를 Router 내부에서 사용하도록 수정
 function PrivateRoute({ children }) {
   const location = useLocation();
@@ -187,7 +189,15 @@ function App() {
             </PrivateRoute>
           }
         />
-
+	{/* AI 증상 체커 */}
+        <Route
+          path="/symptom-checker"
+          element={
+            <PrivateRoute>
+              <SymptomCheckerPage />
+            </PrivateRoute>
+          }
+        />
         {/* 진료 기록 라우트 */}
         <Route
           path="/pets/:petId/visits"
