@@ -6,3 +6,8 @@ node_modules/
 build/
 *.log
 .DS_Store
+
+# SSL Certificates
+*.pem
+*.key
+nginx/ssl/*
