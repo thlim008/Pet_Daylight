@@ -500,14 +500,30 @@ function MissingPetCreatePage() {
               className="hidden"
               id="image-upload"
             />
-            <label
-              htmlFor="image-upload"
-              className="block w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-amber-400 transition-all cursor-pointer text-center"
-            >
-              <span className="text-4xl mb-2 block">📷</span>
-              <span className="text-gray-600">클릭하여 사진 추가</span>
-            </label>
-
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageChange}
+              className="hidden"
+              id="camera-upload"
+            />
+            <div className="flex gap-3">
+              <label
+                htmlFor="image-upload"
+                className="flex-1 px-4 py-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-amber-400 transition-all cursor-pointer text-center"
+              >
+                <span className="text-3xl mb-2 block">🖼️</span>
+                <span className="text-gray-600 text-sm">갤러리에서 선택</span>
+              </label>
+              <label
+                htmlFor="camera-upload"
+                className="flex-1 px-4 py-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-amber-400 transition-all cursor-pointer text-center"
+              >
+                <span className="text-3xl mb-2 block">📷</span>
+                <span className="text-gray-600 text-sm">카메라로 촬영</span>
+              </label>
+            </div>
             {/* 미리보기 */}
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-5 gap-4 mt-4">
