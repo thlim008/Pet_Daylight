@@ -85,29 +85,35 @@ function MissingPetDetailPage() {
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return;
-
+  
     try {
       setSubmittingComment(true);
       
-      console.log('LOG', {
+      console.log('댓글 작성 요청:', {
         missing_pet: parseInt(id),
         content: comment,
       });
-
+    
       const response = await API.post('/missing-pets/comments/', {
         missing_pet: parseInt(id),
         content: comment,
       });
       
-      console.log('LOG', response.data);
+      console.log('✅ 댓글 작성 성공:', response.data);
       
       setComment('');
       await loadPet();
       alert('댓글이 작성되었습니다!');
     } catch (err) {
-      console.error('LOG 댓글 작성 실패:', err);
-      console.error('LOG 에러 응답:', err.response?.data);
-      alert(`댓글 작성에 실패했습니다: ${err.response?.data?.error || err.message}`);
+      console.error('❌ 댓글 작성 실패:', err);
+      console.error('에러 응답:', err.response?.data);
+      
+      // 🔥 에러 메시지를 더 자세히 확인
+      if (err.response?.data) {
+        alert(`댓글 작성 실패: ${JSON.stringify(err.response.data)}`);
+      } else {
+        alert(`댓글 작성에 실패했습니다: ${err.message}`);
+      }
     } finally {
       setSubmittingComment(false);
     }

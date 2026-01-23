@@ -74,3 +74,6 @@ class Notification(models.Model):
         """읽음 처리"""
         self.is_read = True
         self.save(update_fields=['is_read'])
+
+    link = models.CharField(max_length=500, blank=True, null=True)
+
