@@ -13,7 +13,6 @@ function LoginPage() {
     const savedError = localStorage.getItem('login_error');
     if (savedError) {
       setError(savedError);
-      console.log('💾 저장된 에러 복원:', savedError);
     }
   }, []);
 
@@ -24,7 +23,6 @@ function LoginPage() {
   const clearError = () => {
     setError('');
     localStorage.removeItem('login_error');
-    console.log('🗑️ 에러 삭제됨');
   };
 
   const handleSubmit = async (e) => {
@@ -32,11 +30,9 @@ function LoginPage() {
     setLoading(true);
     
     try {
-      console.log('🔐 로그인 시도:', { username: formData.username });
       
       const res = await authAPI.login(formData);
       
-      console.log('✅ 로그인 성공!');
       
       localStorage.setItem('access_token', res.data.tokens.access);
       localStorage.setItem('refresh_token', res.data.tokens.refresh);
@@ -71,13 +67,11 @@ function LoginPage() {
         }
       }
       
-      console.log('🔴 에러 메시지:', errorMessage);
       
       // localStorage에 저장!
       localStorage.setItem('login_error', errorMessage);
       setError(errorMessage);
       
-      console.log('💾 에러를 localStorage에 저장함');
     } finally {
       setLoading(false);
     }
@@ -85,7 +79,6 @@ function LoginPage() {
 
   const handleSocialLogin = (provider) => {
     clearError(); // 소셜 로그인 시도 시 에러 삭제
-    console.log(`🔑 ${provider} 소셜 로그인`);
     window.location.href = `https://petdaylight.mooo.com/accounts/${provider}/login/`;
   };
 

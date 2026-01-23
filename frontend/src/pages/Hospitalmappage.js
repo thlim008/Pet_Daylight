@@ -53,7 +53,6 @@ function HospitalMapPage() {
       const timer = setTimeout(() => {
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
-          console.log('🗺️ 지도 초기화 시작...');
           initMap();
         } else {
           console.error('❌ map 컨테이너를 찾을 수 없습니다.');
@@ -77,7 +76,6 @@ function HospitalMapPage() {
       const response = await authAPI.getMe();
       const distance = response.data.notification_distance || 10000; // 기본 10km
       setSearchRadius(distance);
-      console.log('✅ 검색 반경:', distance / 1000, 'km');
       return distance;
     } catch (err) {
       console.error('❌ 사용자 설정 로드 실패:', err);
@@ -94,7 +92,6 @@ function HospitalMapPage() {
       return;
     }
 
-    console.log('📍 위치 정보 요청 중...');
 
     const locationOptions = {
       enableHighAccuracy: false, // 빠른 응답을 위해 false로 변경
@@ -106,18 +103,15 @@ function HospitalMapPage() {
       (position) => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ latitude, longitude });
-        console.log('✅ 현재 위치:', latitude, longitude);
       },
       (error) => {
         console.error('❌ 위치 가져오기 실패:', error);
         
         // 재시도 (정확도 낮춰서)
-        console.log('🔄 재시도 중 (낮은 정확도)...');
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             setUserLocation({ latitude, longitude });
-            console.log('✅ 현재 위치 (재시도 성공):', latitude, longitude);
           },
           (retryError) => {
             console.error('❌ 재시도 실패:', retryError);
@@ -163,7 +157,6 @@ function HospitalMapPage() {
   // ✅ 병원 로드 - searchRadius 확인 후 실행
   const loadHospitals = async () => {
     if (!userLocation || searchRadius === null) {
-      console.log('⏳ 위치 또는 검색 반경 대기 중...');
       setLoading(false);
       return;
     }
@@ -176,14 +169,12 @@ function HospitalMapPage() {
         radius: Math.min(searchRadius, 20000)
       };
       
-      console.log('🔍 병원 검색 파라미터:', params);
       
       const response = await API.get('/hospitals/', { params });
       
       const data = response.data.results || response.data;
       const validHospitals = data.filter(h => h.latitude && h.longitude);
       
-      console.log(`📥 DB 병원: ${validHospitals.length}개 (반경: ${searchRadius/1000}km)`);
       setHospitals(validHospitals);
     } catch (err) {
       console.error('❌ 병원 로드 실패:', err);
@@ -207,7 +198,6 @@ function HospitalMapPage() {
     // 사용자 설정 반경이 20km 넘으면 20km로 제한
     const effectiveRadius = Math.min(searchRadius, 20000);
     
-    console.log(`📍 카카오 검색 반경: ${searchRadius/1000}km (실제 적용: ${effectiveRadius/1000}km)`);
     
     const searchOptions = {
       location: new window.kakao.maps.LatLng(userLocation.latitude, userLocation.longitude),
@@ -215,7 +205,6 @@ function HospitalMapPage() {
       sort: window.kakao.maps.services.SortBy.DISTANCE
     };
 
-    console.log('🔍 카카오맵 검색 시작 (반경:', effectiveRadius / 1000, 'km)');
 
     // 동물병원 검색 (여러 키워드로 검색)
     const hospitalKeywords = ['동물병원', '24시 동물병원', '반려동물병원'];
@@ -225,7 +214,6 @@ function HospitalMapPage() {
       setTimeout(() => {
         places.keywordSearch(keyword, (result, status) => {
           if (status === window.kakao.maps.services.Status.OK) {
-            console.log(`✅ "${keyword}" 검색:`, result.length, '곳');
             result.forEach(place => {
               // 중복 제거 (같은 ID는 하나만)
               if (!allPlaces.find(p => p.kakao_id === place.id)) {
@@ -251,7 +239,6 @@ function HospitalMapPage() {
               }
             });
           } else {
-            console.log(`⚠️ "${keyword}" 검색 결과 없음`);
           }
 
           hospitalSearchCount++;
@@ -273,7 +260,6 @@ function HospitalMapPage() {
         setTimeout(() => {
           places.keywordSearch(keyword, (result, status) => {
             if (status === window.kakao.maps.services.Status.OK) {
-              console.log(`✅ "${keyword}" 검색:`, result.length, '곳');
               result.forEach(place => {
                 // 중복 제거
                 if (!allPlaces.find(p => p.kakao_id === place.id)) {
@@ -299,7 +285,6 @@ function HospitalMapPage() {
                 }
               });
             } else {
-              console.log(`⚠️ "${keyword}" 검색 결과 없음`);
             }
 
             groomingSearchCount++;
@@ -307,11 +292,8 @@ function HospitalMapPage() {
             // 모든 검색 완료
             if (groomingSearchCount === groomingKeywords.length) {
               setKakaoPlaces(allPlaces);
-              console.log('🎯 카카오맵 검색 완료:', allPlaces.length, '곳');
-              console.log('🗺️ 생성된 마커:', allMarkers.length, '개');
               
               if (allPlaces.length === 0) {
-                console.log('⚠️ 검색 결과가 없습니다. 반경을 늘려보세요.');
               }
               
               // 마커 배열에 추가
@@ -393,7 +375,6 @@ function HospitalMapPage() {
           userLocation.longitude
         );
         map.setCenter(center);
-        console.log('📱 모바일 모드: 내 위치로 이동');
       }
     };
 
@@ -532,7 +513,6 @@ function HospitalMapPage() {
         showKakaoInfoWindow(place, marker, kakaoMap);
       });
 
-      console.log('✅ 마커 생성:', place.name);
       return marker;
     } catch (error) {
       console.error('❌ 마커 생성 실패:', place.name, error);

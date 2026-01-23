@@ -191,20 +191,34 @@ class PetViewSet(viewsets.ModelViewSet):
     
     def perform_update(self, serializer):
         """본인의 반려동물만 수정 가능"""
-        if serializer.instance.user != self.request.user:
+        serializer.save()
+    
+    def update(self, request, *args, **kwargs):
+        """본인의 반려동물만 수정 가능"""
+        instance = self.get_object()
+        if instance.user != request.user:
             return Response(
                 {'error': '본인의 반려동물만 수정할 수 있습니다.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        serializer.save()
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
     
-    def perform_destroy(self, instance):
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
         """본인의 반려동물만 삭제 가능"""
-        if instance.user != self.request.user:
+        instance = self.get_object()
+        if instance.user != request.user:
             return Response(
                 {'error': '본인의 반려동물만 삭제할 수 있습니다.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    def perform_destroy(self, instance):
         instance.delete()
     
     @action(detail=True, methods=['patch'])
@@ -490,7 +504,7 @@ class SymptomCheckerView(APIView):
                     'Content-Type': 'application/json',
                 },
                 json={
-                    'model': 'google/gemini-2.0-flash-001',
+                    'model': 'google/gemini-2.0-flash-exp:free',
                     'max_tokens': 500,
                     'messages': messages,
                 }

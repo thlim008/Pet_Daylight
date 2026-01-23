@@ -39,10 +39,10 @@ function MissingPetDetailPage() {
     try {
       setLoading(true);
       const response = await API.get(`/missing-pets/${id}/`);
-      console.log('✅ 제보 상세 로드:', response.data);
+      console.log('LOG', response.data);
       setPet(response.data);
     } catch (err) {
-      console.error('❌ 제보 로드 실패:', err);
+      console.error('LOG 제보 로드 실패:', err);
       alert('제보를 찾을 수 없습니다.');
       navigate('/missing-pets');
     } finally {
@@ -63,7 +63,7 @@ function MissingPetDetailPage() {
       await loadPet();
       alert('상태가 변경되었습니다.');
     } catch (err) {
-      console.error('❌ 상태 변경 실패:', err);
+      console.error('LOG 상태 변경 실패:', err);
       console.error('에러 상세:', err.response?.data);
       alert('상태 변경에 실패했습니다.');
     }
@@ -89,7 +89,7 @@ function MissingPetDetailPage() {
     try {
       setSubmittingComment(true);
       
-      console.log('📤 댓글 전송 데이터:', {
+      console.log('LOG', {
         missing_pet: parseInt(id),
         content: comment,
       });
@@ -99,14 +99,14 @@ function MissingPetDetailPage() {
         content: comment,
       });
       
-      console.log('✅ 댓글 작성 성공:', response.data);
+      console.log('LOG', response.data);
       
       setComment('');
       await loadPet();
       alert('댓글이 작성되었습니다!');
     } catch (err) {
-      console.error('❌ 댓글 작성 실패:', err);
-      console.error('❌ 에러 응답:', err.response?.data);
+      console.error('LOG 댓글 작성 실패:', err);
+      console.error('LOG 에러 응답:', err.response?.data);
       alert(`댓글 작성에 실패했습니다: ${err.response?.data?.error || err.message}`);
     } finally {
       setSubmittingComment(false);
@@ -157,17 +157,19 @@ function MissingPetDetailPage() {
     }
   };
 
-  // 🔥 QR코드 생성 핸들러
+  // 🔥 QR코드 생성 핸들러 (수정됨)
   const handleGenerateQR = async () => {
     try {
         setGeneratingQR(true);
         const response = await API.post(`/missing-pets/${id}/generate_qr/`);
-        console.log('✅ QR코드 생성 성공:', response.data);
+        console.log('LOG QR Response:', response.data);
         
-        const fullUrl = response.data.full_url;
-        setQrUrl(fullUrl);
-                // 🔥 브라우저 미리보기 방지 및 강제 다운로드 로직
-        const res = await fetch(fullUrl);
+        // response.data.qr_code 사용
+        const qrCodeUrl = response.data.qr_code;
+        setQrUrl(qrCodeUrl);
+        
+        // QR 코드 자동 다운로드
+        const res = await fetch(qrCodeUrl);
         const blob = await res.blob();
         const blobUrl = window.URL.createObjectURL(blob);
         
@@ -177,30 +179,36 @@ function MissingPetDetailPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl); // 메모리 해제
+        window.URL.revokeObjectURL(blobUrl);
         
         alert('QR코드가 생성되고 다운로드되었습니다!');
       } catch (err) {
-        console.error('❌ QR코드 생성 실패:', err);
-        alert('QR코드 생성에 실패했습니다.');
+        console.error('LOG QR코드 생성 실패:', err);
+        console.error('상세 에러:', err.response?.data);
+        alert(`QR코드 생성에 실패했습니다: ${err.response?.data?.error || err.message}`);
       } finally {
         setGeneratingQR(false);
       }
   };
-  // 🔥 포스터 생성 핸들러
+  
+  // 🔥 포스터 생성 핸들러 (수정됨)
   const handleGeneratePoster = async () => {
     try {
       setGeneratingPoster(true);
       const response = await API.post(`/missing-pets/${id}/generate_poster/`);
-      console.log('✅ 포스터 생성 성공:', response.data);
-      setPosterUrl(response.data.full_url);
+      console.log('LOG Poster Response:', response.data);
       
-      // 자동 다운로드
-      window.open(response.data.full_url, '_blank');
+      // response.data.poster_pdf 사용
+      const posterPdfUrl = response.data.poster_pdf;
+      setPosterUrl(posterPdfUrl);
+      
+      // PDF 자동 다운로드
+      window.open(posterPdfUrl, '_blank');
       alert('포스터가 생성되었습니다! 다운로드를 확인하세요.');
     } catch (err) {
-      console.error('❌ 포스터 생성 실패:', err);
-      alert('포스터 생성에 실패했습니다.');
+      console.error('LOG 포스터 생성 실패:', err);
+      console.error('상세 에러:', err.response?.data);
+      alert(`포스터 생성에 실패했습니다: ${err.response?.data?.error || err.message}`);
     } finally {
       setGeneratingPoster(false);
     }
@@ -679,6 +687,22 @@ function MissingPetDetailPage() {
                       className="w-full px-4 py-3 bg-red-50 text-red-700 rounded-xl font-medium hover:bg-red-100 transition-all"
                     >
                       🗑️ 제보 삭제
+                    </button>
+                  </div>
+
+                  {/* QR/PDF 생성 버튼 */}
+                  <div className="space-y-3 mb-6 pt-6 border-t border-gray-200">
+                    <button
+                      onClick={handleGenerateQR}
+                      className="w-full px-4 py-3 bg-purple-50 text-purple-700 rounded-xl font-medium hover:bg-purple-100 transition-all"
+                    >
+                      📱 QR 코드 생성
+                    </button>
+                    <button
+                      onClick={handleGeneratePoster}
+                      className="w-full px-4 py-3 bg-green-50 text-green-700 rounded-xl font-medium hover:bg-green-100 transition-all"
+                    >
+                      📄 포스터 PDF 생성
                     </button>
                   </div>
                 </>

@@ -127,6 +127,10 @@ function HospitalReviewCreatePage() {
     );
   };
 
+  // 실시간 유효성 검사
+  const isContentValid = formData.content.trim().length >= 10;
+  const canSubmit = isContentValid;
+
   if (!hospital) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
@@ -193,11 +197,25 @@ function HospitalReviewCreatePage() {
                 required
                 rows="10"
                 placeholder="병원/미용실을 이용한 경험을 자세히 작성해주세요. 최소 10자 이상 작성해주세요."
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all resize-none"
+                className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-4 outline-none transition-all resize-none ${
+                  formData.content.length > 0 && !isContentValid
+                    ? 'border-red-300 focus:border-red-400 focus:ring-red-50'
+                    : 'border-gray-200 focus:border-amber-400 focus:ring-amber-50'
+                }`}
               />
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-xs text-gray-500">💡 자세하고 솔직한 리뷰는 다른 사용자에게 큰 도움이 됩니다</p>
-                <p className={`text-xs ${formData.content.length < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                <div className="flex-1">
+                  {formData.content.length > 0 && !isContentValid ? (
+                    <p className="text-sm text-red-500 font-medium">
+                      ⚠️ 최소 10자 이상 작성해주세요 (현재 {formData.content.length}자)
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      💡 자세하고 솔직한 리뷰는 다른 사용자에게 큰 도움이 됩니다
+                    </p>
+                  )}
+                </div>
+                <p className={`text-xs ml-4 ${formData.content.length < 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
                   {formData.content.length}자
                 </p>
               </div>
@@ -208,7 +226,11 @@ function HospitalReviewCreatePage() {
             <button type="button" onClick={() => navigate(-1)} className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all">
               취소
             </button>
-            <button type="submit" disabled={loading} className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50">
+            <button 
+              type="submit" 
+              disabled={loading || !canSubmit} 
+              className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? '등록 중...' : (isEditMode ? '리뷰 수정' : '리뷰 등록')}
             </button>
           </div>

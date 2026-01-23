@@ -35,7 +35,6 @@ function MissingPetMapPage() {
     try {
       const response = await authAPI.getMe();
       setSearchRadius(response.data.notification_distance || 10000);
-      console.log('✅ 검색 반경:', response.data.notification_distance / 1000, 'km');
     } catch (err) {
       console.error('❌ 사용자 설정 로드 실패:', err);
     }
@@ -49,7 +48,6 @@ function MissingPetMapPage() {
       return;
     }
 
-    console.log('📍 위치 정보 요청 중...');
 
     const locationOptions = {
       enableHighAccuracy: false, // 빠른 응답을 위해 false로 변경
@@ -61,18 +59,15 @@ function MissingPetMapPage() {
       (position) => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ latitude, longitude });
-        console.log('✅ 현재 위치:', latitude, longitude);
       },
       (error) => {
         console.error('❌ 위치 가져오기 실패:', error);
         
         // 재시도 (정확도 낮춰서)
-        console.log('🔄 재시도 중 (낮은 정확도)...');
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             setUserLocation({ latitude, longitude });
-            console.log('✅ 현재 위치 (재시도 성공):', latitude, longitude);
           },
           (retryError) => {
             console.error('❌ 재시도 실패:', retryError);
@@ -117,7 +112,6 @@ function MissingPetMapPage() {
           userLocation.longitude
         );
         map.setCenter(center);
-        console.log("📱 모바일 모드: 내 위치로 이동");
       }
     };
 
@@ -137,9 +131,12 @@ function MissingPetMapPage() {
       });
       
       const data = response.data.results || response.data;
-      const validReports = data.filter(r => r.latitude && r.longitude);
+      const validReports = data.filter(r => r.latitude && r.longitude).map(r => ({
+        ...r,
+        latitude: parseFloat(r.latitude),
+        longitude: parseFloat(r.longitude)
+      }));
       
-      console.log('📥 전체 제보:', validReports.length);
       setReports(validReports);
     } catch (err) {
       console.error('❌ 제보 로드 실패:', err);
@@ -208,7 +205,6 @@ function MissingPetMapPage() {
       return distance <= searchRadius;
     });
 
-    console.log('🎯 검색 반경 내 제보:', nearbyReports.length);
 
     // 필터링된 제보에 마커 생성
     const newMarkers = nearbyReports.map(report => {

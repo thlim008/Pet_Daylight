@@ -131,7 +131,10 @@ class Hospital(models.Model):
         if reviews.exists():
             self.rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
             self.review_count = reviews.count()
-            self.save(update_fields=['rating', 'review_count'])
+        else:
+            self.rating = 0.00
+            self.review_count = 0
+        self.save(update_fields=['rating', 'review_count'])
 
     def is_open_now(self):
         """현재 진료 중인지 확인"""
@@ -312,3 +315,8 @@ class HospitalReview(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.hospital.update_rating()
+    
+    def delete(self, *args, **kwargs):
+        hospital = self.hospital
+        super().delete(*args, **kwargs)
+        hospital.update_rating()

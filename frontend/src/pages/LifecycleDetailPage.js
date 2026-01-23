@@ -18,7 +18,6 @@ function LifecycleDetailPage() {
     try {
       setLoading(true);
       const response = await API.get(`/lifecycles/guides/${id}/`);
-      console.log('✅ 가이드 상세:', response.data);
       
       setGuide(response.data);
       
@@ -52,7 +51,6 @@ function LifecycleDetailPage() {
         checklist_item: item
       });
 
-      console.log('✅ 체크리스트 토글:', response.data);
 
       // 백엔드 응답으로 정확한 상태 업데이트
       setCheckedItems(prev => ({

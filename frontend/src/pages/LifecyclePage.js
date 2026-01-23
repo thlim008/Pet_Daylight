@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import API from '../services/api';
 
 function LifecyclePage() {
-  console.log('🎯 LifecyclePage 렌더링됨!');
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

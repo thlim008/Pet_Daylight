@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '../services/api';
+import KakaoMap from '../components/KakaoMap';
+
 const API_BASE_URL = 'https://petdaylight.mooo.com';
+
 function MissingPetEditPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -35,9 +38,8 @@ function MissingPetEditPage() {
       const response = await API.get(`/missing-pets/${id}/`);
       const pet = response.data;
       
-      console.log('✅ 제보 데이터 로드:', pet);
+      console.log('LOG', pet);
 
-      // 폼 데이터 설정
       setFormData({
         category: pet.category,
         species: pet.species,
@@ -52,158 +54,110 @@ function MissingPetEditPage() {
         status: pet.status,
       });
 
-        if (pet.images && Array.isArray(pet.images)) {
-        const formattedImages = pet.images.map(img => {
-          // 이미 주소 형식이면 그대로 두고, /media/로 시작하면 백엔드 주소를 붙임
-          if (typeof img === 'string' && img.startsWith('http')) {
-            return img;
-          }
-          return `${API_BASE_URL}${img}`;
-        });
-        setExistingImages(formattedImages);
+      if (pet.images_full_url && pet.images_full_url.length > 0) {
+        setExistingImages(pet.images_full_url);
       }
+
     } catch (err) {
-      console.error('❌ 제보 로드 실패:', err);
-      alert('제보를 찾을 수 없습니다.');
+      console.error('LOG', err);
+      alert('제보를 불러오는데 실패했습니다.');
       navigate('/missing-pets');
     } finally {
       setInitialLoading(false);
     }
   };
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setError('');
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    
-    if (existingImages.length + files.length > 5) {
-      setError('이미지는 최대 5장까지 업로드 가능합니다.');
+    const totalImages = existingImages.length + images.length + files.length;
+
+    if (totalImages > 3) {
+      alert('최대 3장까지 업로드 가능합니다.');
       return;
     }
 
-    setImages(files);
+    setImages(prev => [...prev, ...files]);
 
-    // 미리보기 생성
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setImagePreviews(previews);
-    setError('');
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const removeNewImage = (index) => {
-    const newImages = images.filter((_, i) => i !== index);
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
-    setImages(newImages);
-    setImagePreviews(newPreviews);
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const removeExistingImage = (index) => {
-    const newExisting = existingImages.filter((_, i) => i !== index);
-    setExistingImages(newExisting);
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData({
-            ...formData,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          alert('현재 위치가 설정되었습니다!');
-        },
-        (error) => {
-          console.error('위치 가져오기 실패:', error);
-          alert('위치 정보를 가져올 수 없습니다.');
-        }
-      );
-    } else {
-      alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
-    }
+  const handleLocationSelect = (location) => {
+    setFormData(prev => ({
+      ...prev,
+      address: location.address,
+      latitude: location.latitude,
+      longitude: location.longitude
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    
+    if (!formData.species || !formData.description || !formData.address || !formData.occurred_at || !formData.contact) {
+      alert('필수 항목을 모두 입력해주세요.');
+      return;
+    }
 
     try {
-      // 데이터 검증
-      if (!formData.description) {
-        setError('상세 설명을 입력해주세요.');
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      setError('');
 
-      if (!formData.address) {
-        setError('위치를 입력해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      if (!formData.contact) {
-        setError('연락처를 입력해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      // FormData 생성
       const data = new FormData();
-      
-      // 기본 필드 추가
       data.append('category', formData.category);
       data.append('species', formData.species);
-      data.append('breed', formData.breed || '');
-      data.append('name', formData.name || '');
+      data.append('breed', formData.breed);
+      data.append('name', formData.name);
       data.append('description', formData.description);
       data.append('address', formData.address);
-      data.append('latitude', parseFloat(formData.latitude));
-      data.append('longitude', parseFloat(formData.longitude));
+      data.append('latitude', formData.latitude);
+      data.append('longitude', formData.longitude);
       data.append('occurred_at', formData.occurred_at);
       data.append('contact', formData.contact);
       data.append('status', formData.status);
-      
-      // 새 이미지 파일 추가
-      images.forEach((image) => {
+
+      images.forEach(image => {
         data.append('uploaded_images', image);
       });
 
-      // 기존 이미지 URL 추가 (JSON 문자열로)
-      data.append('existing_images', JSON.stringify(existingImages));
+      if (existingImages.length > 0) {
+        data.append('existing_images', JSON.stringify(existingImages));
+      }
 
-      console.log('📤 전송 데이터:', {
-        ...formData,
-        new_images_count: images.length,
-        existing_images_count: existingImages.length,
-      });
-
-      const response = await API.patch(`/missing-pets/${id}/`, data, {
+      await API.patch(`/missing-pets/${id}/`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      console.log('✅ 제보 수정 성공:', response.data);
       alert('제보가 수정되었습니다!');
       navigate(`/missing-pets/${id}`);
     } catch (err) {
-      console.error('❌ 제보 수정 실패:', err);
-      console.error('❌ 에러 응답:', err.response?.data);
-      
-      if (err.response?.data) {
-        const errors = err.response.data;
-        const errorMessages = Object.entries(errors)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('\n');
-        setError(`수정 실패:\n${errorMessages}`);
-      } else {
-        setError('제보 수정에 실패했습니다. 다시 시도해주세요.');
-      }
+      console.error('LOG', err);
+      setError(err.response?.data?.error || '제보 수정에 실패했습니다.');
+      alert(err.response?.data?.error || '제보 수정에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -222,7 +176,6 @@ function MissingPetEditPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF9]">
-      {/* 헤더 */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -231,7 +184,7 @@ function MissingPetEditPage() {
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
               <img 
-                src="/logo.png"
+                src="/logo.png" 
                 alt="Pet Daylight" 
                 className="w-14 h-14 object-contain drop-shadow-md"
                 onError={(e) => {
@@ -249,7 +202,7 @@ function MissingPetEditPage() {
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all flex items-center space-x-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               <span>취소</span>
             </button>
@@ -257,256 +210,249 @@ function MissingPetEditPage() {
         </div>
       </header>
 
-      {/* 메인 콘텐츠 */}
       <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-            <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
-          </div>
-        )}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">제보 수정</h1>
+            <p className="text-gray-600 mb-8">제보 내용을 수정해주세요</p>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-8 space-y-8">
-            {/* 제목 */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">제보 수정</h2>
-              <p className="text-gray-600">수정할 정보를 입력해주세요.</p>
-            </div>
-
-            {/* 구분 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                구분 <span className="text-red-500">*</span>
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex-1">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="missing"
-                    checked={formData.category === 'missing'}
-                    onChange={handleChange}
-                    className="sr-only peer"
-                  />
-                  <div className="px-6 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-center font-medium text-gray-700 cursor-pointer peer-checked:border-red-400 peer-checked:bg-red-50 peer-checked:text-red-700 transition-all">
-                    🔍 실종
-                  </div>
-                </label>
-                <label className="flex-1">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="found"
-                    checked={formData.category === 'found'}
-                    onChange={handleChange}
-                    className="sr-only peer"
-                  />
-                  <div className="px-6 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-center font-medium text-gray-700 cursor-pointer peer-checked:border-blue-400 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition-all">
-                    ✅ 발견
-                  </div>
-                </label>
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-700 text-sm">{error}</p>
               </div>
-            </div>
+            )}
 
-            {/* 종류 & 품종 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-8">
+              {/* 카테고리 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  종류 <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  카테고리 *
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, category: 'missing' }))}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.category === 'missing'
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">🔍</div>
+                    <div className="font-medium">실종</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, category: 'found' }))}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.category === 'found'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">✅</div>
+                    <div className="font-medium">발견</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, category: 'rescue' }))}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.category === 'rescue'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">🚨</div>
+                    <div className="font-medium">구조</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 동물 종류 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  동물 종류 *
                 </label>
                 <select
                   name="species"
                   value={formData.species}
-                  onChange={handleChange}
-                  required
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 >
-                  <option value="dog">🐕 강아지</option>
-                  <option value="cat">🐈 고양이</option>
-                  <option value="other">🐾 기타</option>
+                  <option value="dog">강아지</option>
+                  <option value="cat">고양이</option>
+                  <option value="other">기타</option>
                 </select>
               </div>
 
+              {/* 품종 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
                   품종
                 </label>
                 <input
                   type="text"
                   name="breed"
                   value={formData.breed}
-                  onChange={handleChange}
-                  placeholder="예: 말티즈, 페르시안 고양이"
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  placeholder="예: 말티즈, 페르시안 등"
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 />
               </div>
-            </div>
 
-            {/* 이름 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                이름
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="예: 뽀삐"
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-              />
-            </div>
-
-            {/* 상세 설명 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                상세 설명 <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                rows="5"
-                placeholder="실종/발견 당시 상황, 특이사항 등을 자세히 작성해주세요."
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all resize-none"
-              />
-            </div>
-
-            {/* 위치 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                위치 (주소) <span className="text-red-500">*</span>
-              </label>
-              <div className="flex space-x-2">
+              {/* 이름 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  이름
+                </label>
                 <input
                   type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  required
-                  placeholder="예: 서울시 강남구 역삼동 123-45"
-                  className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  placeholder="반려동물 이름"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all whitespace-nowrap"
-                >
-                  📍 현재 위치
-                </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
-                위도: {formData.latitude}, 경도: {formData.longitude}
-              </p>
-            </div>
 
-            {/* 연락처 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                연락처 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="contact"
-                value={formData.contact}
-                onChange={handleChange}
-                required
-                placeholder="010-1234-5678"
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-              />
-            </div>
-
-            {/* 날짜 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                실종/발견 날짜 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="occurred_at"
-                value={formData.occurred_at}
-                onChange={handleChange}
-                required
-                max={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-              />
-            </div>
-
-            {/* 상태 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                상태
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-              >
-                <option value="active">진행중</option>
-                <option value="resolved">해결됨</option>
-                <option value="closed">종료</option>
-              </select>
-            </div>
-
-            {/* 기존 이미지 */}
-            {existingImages.length > 0 && (
+              {/* 특징 및 설명 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  기존 이미지
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  특징 및 설명 *
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {existingImages.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`기존 이미지 ${index + 1}`}
-                        className="w-full h-40 object-cover rounded-xl border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeExistingImage(index)}
-                        className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 새 이미지 업로드 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                새 사진 추가 (최대 {5 - existingImages.length}장)
-              </label>
-              <div className="space-y-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  disabled={existingImages.length >= 5}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="5"
+                  placeholder="외형적 특징, 성격, 특이사항 등을 자세히 작성해주세요"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all resize-none"
                 />
+              </div>
 
-                {/* 새 이미지 미리보기 */}
+              {/* 발생/발견 위치 - KakaoMap으로 교체 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  발생/발견 위치 *
+                </label>
+                <div className="rounded-xl overflow-hidden border-2 border-gray-200">
+                  <KakaoMap
+                    latitude={formData.latitude}
+                    longitude={formData.longitude}
+                    address={formData.address}
+                    markerTitle="발생/발견 위치"
+                    height="500px"
+                    onLocationSelect={handleLocationSelect}
+                    draggable={true}
+                    showSearch={true}
+                  />
+                </div>
+                {formData.address && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    선택된 위치: {formData.address}
+                  </p>
+                )}
+              </div>
+
+              {/* 발생/발견 날짜 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  발생/발견 날짜 *
+                </label>
+                <input
+                  type="date"
+                  name="occurred_at"
+                  value={formData.occurred_at}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                />
+              </div>
+
+              {/* 연락처 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  연락처 *
+                </label>
+                <input
+                  type="tel"
+                  name="contact"
+                  value={formData.contact}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  placeholder="010-0000-0000"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                />
+              </div>
+
+              {/* 진행 상태 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  진행 상태
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                >
+                  <option value="active">진행중</option>
+                  <option value="resolved">해결됨</option>
+                  <option value="closed">종료</option>
+                </select>
+              </div>
+
+              {/* 기존 이미지 */}
+              {existingImages.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-3">
+                    기존 사진
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {existingImages.map((image, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                        <img
+                          src={image}
+                          alt={`기존 사진 ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(index)}
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center justify-center text-xl font-bold leading-none"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 새 이미지 업로드 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  {existingImages.length > 0 ? '추가 사진' : '사진 업로드'} (최대 3장)
+                </label>
+                
                 {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-3 mb-3">
                     {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative group">
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
                         <img
                           src={preview}
-                          alt={`새 이미지 ${index + 1}`}
-                          className="w-full h-40 object-cover rounded-xl border border-gray-200"
+                          alt={`미리보기 ${index + 1}`}
+                          className="w-full h-full object-cover"
                         />
                         <button
                           type="button"
                           onClick={() => removeNewImage(index)}
-                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center justify-center text-xl font-bold leading-none"
                         >
                           ✕
                         </button>
@@ -514,28 +460,40 @@ function MissingPetEditPage() {
                     ))}
                   </div>
                 )}
+
+                {(existingImages.length + images.length) < 3 && (
+                  <label className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-amber-400 transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <div className="text-center">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <p className="mt-2 text-sm text-gray-600">
+                        클릭하여 사진 추가 (최대 {3 - existingImages.length - images.length}장)
+                      </p>
+                    </div>
+                  </label>
+                )}
               </div>
+
+              {/* 제출 버튼 */}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '수정 중...' : '수정 완료'}
+              </button>
             </div>
           </div>
-
-          {/* 버튼 */}
-          <div className="bg-gray-50 px-8 py-6 border-t border-gray-200 flex items-center justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate(`/missing-pets/${id}`)}
-              className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '수정 중...' : '수정 완료'}
-            </button>
-          </div>
-        </form>
+        </div>
       </main>
     </div>
   );

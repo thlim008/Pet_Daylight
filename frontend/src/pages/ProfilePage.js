@@ -55,7 +55,6 @@ function ProfilePage() {
     try {
       const response = await authAPI.getMe();
       setUser(response.data);
-      console.log('✅ 사용자 정보:', response.data);
       setFormData({
         nickname: response.data.nickname || '',
         email: response.data.email || '',
@@ -194,7 +193,6 @@ function ProfilePage() {
 
     try {
       const response = await API.post('/accounts/password_change/', passwordData);
-      console.log('✅ 비밀번호 변경 성공:', response.data);
 
       setPasswordSuccess(true);
       setPasswordData({

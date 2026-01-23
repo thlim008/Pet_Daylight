@@ -20,7 +20,6 @@ function HomePage() {
     try {
       const response = await authAPI.getMe();
       setUser(response.data);
-      console.log('👤 사용자 정보:', response.data);
     } catch (err) {
       console.error('유저 정보 로드 실패:', err);
       handleLogout();
@@ -35,22 +34,18 @@ function HomePage() {
       const access = params.get('access');
       const refresh = params.get('refresh');
 
-      console.log('🔍 URL 파라미터 확인:', { access: access ? '있음' : '없음', refresh: refresh ? '있음' : '없음' });
 
       if (access && refresh) {
-        console.log('✅ 소셜 로그인 토큰 발견!');
         localStorage.setItem('access_token', access);
         localStorage.setItem('refresh_token', refresh);
         window.history.replaceState({}, document.title, '/');
         await loadUser();
       } else {
         const token = localStorage.getItem('access_token');
-        console.log('🔍 로컬스토리지 토큰:', token ? '있음' : '없음');
 
         if (token) {
           await loadUser();
         } else {
-          console.log('❌ 토큰 없음, 로그인 페이지로 이동');
           setLoading(false);
           navigate('/login');
         }

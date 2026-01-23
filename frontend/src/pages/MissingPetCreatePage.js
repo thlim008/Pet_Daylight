@@ -72,7 +72,7 @@ function MissingPetCreatePage() {
                   address: addr
                 }));
 
-                console.log('✅ 현재 위치 (카카오):', { latitude, longitude, address: addr });
+                console.log('LOG', { latitude, longitude, address: addr });
               } else {
                 // 카카오 실패시 OpenStreetMap 사용
                 reverseGeocode(latitude, longitude).then(addr => {
@@ -82,7 +82,7 @@ function MissingPetCreatePage() {
                     longitude: longitude,
                     address: addr
                   }));
-                  console.log('✅ 현재 위치 (OSM):', { latitude, longitude, address: addr });
+                  console.log('LOG', { latitude, longitude, address: addr });
                 });
               }
               setLoadingLocation(false);
@@ -96,7 +96,7 @@ function MissingPetCreatePage() {
               longitude: longitude,
               address: address
             }));
-            console.log('✅ 현재 위치 (OSM):', { latitude, longitude, address });
+            console.log('LOG', { latitude, longitude, address });
             setLoadingLocation(false);
           }
         } catch (err) {
@@ -207,7 +207,7 @@ function MissingPetCreatePage() {
       const data = new FormData();
       
       // 🔍 디버깅 로그
-      console.log('📤 전송할 데이터:', {
+      console.log('LOG', {
         category: formData.category,
         species: formData.species,
         breed: formData.breed,
@@ -244,7 +244,7 @@ function MissingPetCreatePage() {
         data.append('uploaded_images', image);
       });
     
-      console.log('📤 occurred_at 변환:', {
+      console.log('LOG', {
         원본: formData.occurred_at,
         변환후: occurredDateTime
       });
@@ -255,7 +255,7 @@ function MissingPetCreatePage() {
         },
       });
     
-      console.log('✅ 제보 등록 성공:', response.data);
+      console.log('LOG', response.data);
       alert('제보가 등록되었습니다!');
       navigate(`/missing-pets/${response.data.id}`);
     } catch (err) {

@@ -47,7 +47,6 @@ function PasswordResetConfirmPage() {
         new_password_confirm: formData.new_password_confirm,
       });
 
-      console.log('✅ 비밀번호 변경 성공:', response.data);
       setSuccess(true);
     } catch (err) {
       console.error('❌ 비밀번호 변경 실패:', err);

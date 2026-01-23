@@ -22,7 +22,6 @@ function HospitalDetailPage() {
     try {
       setLoading(true);
       const response = await API.get(`/hospitals/${id}/`);
-      console.log('✅ 병원 상세:', response.data);
       setHospital(response.data);
     } catch (err) {
       console.error('❌ 병원 로드 실패:', err);
@@ -37,7 +36,6 @@ function HospitalDetailPage() {
     try {
       setReviewsLoading(true);
       const response = await API.get(`/hospitals/${id}/reviews/`);
-      console.log('✅ 리뷰 목록:', response.data);
       
       if (response.data.results) {
         setReviews(response.data.results);

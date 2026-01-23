@@ -29,7 +29,6 @@ function CommunityEditPage() {
       const response = await API.get(`/communities/${id}/`);
       const post = response.data;
       
-      console.log('✅ 게시글 데이터 로드:', post);
 
       setFormData({
         category: post.category,
@@ -117,19 +116,12 @@ function CommunityEditPage() {
 
       data.append('existing_images', JSON.stringify(existingImages));
 
-      console.log('📤 전송 데이터:', {
-        ...formData,
-        new_images_count: images.length,
-        existing_images_count: existingImages.length,
-      });
-
       const response = await API.patch(`/communities/${id}/`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      console.log('✅ 게시글 수정 성공:', response.data);
       alert('게시글이 수정되었습니다!');
       navigate(`/communities/${id}`);
     } catch (err) {

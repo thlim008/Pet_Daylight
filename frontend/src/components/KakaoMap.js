@@ -34,7 +34,6 @@ function KakaoMap({
       if (window.kakao && window.kakao.maps) {
         setIsLoaded(true);
       } else {
-        console.log('카카오맵 SDK 로딩 대기 중...');
         setTimeout(checkKakaoMaps, 100);
       }
     };
@@ -258,6 +257,7 @@ function KakaoMap({
               }}
             />
             <button
+              type="button"
               onClick={handleSearch}
               style={{
                 padding: '10px 20px',

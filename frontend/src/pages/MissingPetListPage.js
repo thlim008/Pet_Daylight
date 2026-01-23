@@ -32,7 +32,6 @@ function MissingPetListPage() {
   useEffect(() => {
     try {
       localStorage.setItem('missingPetFilters', JSON.stringify(filters));
-      console.log('✅ 필터 저장됨:', filters);
     } catch (err) {
       console.error('⛔ 필터 저장 실패:', err);
     }
@@ -50,7 +49,6 @@ function MissingPetListPage() {
       
       const response = await API.get('/missing-pets/', { params });
       
-      console.log('✅ API 응답:', response.data);
       
       // 응답이 객체인 경우 (pagination)
       if (response.data.results) {

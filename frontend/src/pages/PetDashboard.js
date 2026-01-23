@@ -151,7 +151,6 @@ function PetDashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  console.log('🔘 전체 가이드 버튼 클릭됨');
                   window.location.href = '/lifecycles';
                 }}
                 className="px-3 sm:px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 transition-all"

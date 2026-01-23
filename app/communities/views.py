@@ -54,16 +54,44 @@ class CommunityViewSet(viewsets.ModelViewSet):
         """게시글 생성 시 사용자 자동 설정"""
         serializer.save(user=self.request.user)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticatedOrReadOnly])
+    def popular(self, request):
+        """인기 게시글 (좋아요 많은 순)"""
+        from django.db.models import Count
+        
+        queryset = Community.objects.annotate(
+            likes_count=Count('user_likes')
+        ).order_by('-likes_count', '-created_at')[:10]
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
         """좋아요 토글"""
+        from .models import CommunityLike
+        
         community = self.get_object()
         
-        if request.user in community.user_likes.all():
-            community.user_likes.remove(request.user)
-            return Response({'liked': False, 'likes_count': community.user_likes.count()})
+        # 좋아요 존재 여부 확인
+        like_obj = CommunityLike.objects.filter(
+            community=community,
+            user=request.user
+        ).first()
         
-        community.user_likes.add(request.user)
+        if like_obj:
+            # 좋아요 취소
+            like_obj.delete()
+            return Response({
+                'liked': False,
+                'likes_count': community.user_likes.count()
+            })
+        
+        # 좋아요 추가
+        CommunityLike.objects.create(
+            community=community,
+            user=request.user
+        )
         
         # 알림 생성 (자기 글에는 알림 안 감)
         if community.user != request.user:
@@ -75,7 +103,11 @@ class CommunityViewSet(viewsets.ModelViewSet):
                 link=f'/communities/{community.id}',
                 community=community
             )
-        return Response({'liked': True, 'likes_count': community.user_likes.count()})
+        
+        return Response({
+            'liked': True,
+            'likes_count': community.user_likes.count()
+        })
 
 
 class CommunityCommentViewSet(viewsets.ModelViewSet):

@@ -39,7 +39,6 @@ function CommunityListPage() {
   useEffect(() => {
     try {
       localStorage.setItem('communityFilters', JSON.stringify(filters));
-      console.log('✅ 커뮤니티 필터 저장됨:', filters);
     } catch (err) {
       console.error('❌ 필터 저장 실패:', err);
     }
@@ -55,7 +54,6 @@ function CommunityListPage() {
       
       const response = await API.get('/communities/', { params });
       
-      console.log('✅ API 응답:', response.data);
       
       if (response.data.results) {
         setPosts(response.data.results);

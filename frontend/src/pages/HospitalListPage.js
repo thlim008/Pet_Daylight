@@ -52,7 +52,6 @@ function HospitalListPage() {
       const response = await authAPI.getMe();
       const distance = response.data.notification_distance || 10000; // 기본 10km
       setSearchRadius(distance);
-      console.log('✅ 검색 반경:', distance / 1000, 'km');
       return distance;
     } catch (err) {
       console.error('❌ 사용자 설정 로드 실패:', err);
@@ -72,7 +71,6 @@ function HospitalListPage() {
       (position) => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ latitude, longitude });
-        console.log('✅ 현재 위치:', latitude, longitude);
       },
       () => {
         setUserLocation({ latitude: 36.3504, longitude: 127.3845 });
@@ -97,16 +95,13 @@ function HospitalListPage() {
   // 카카오맵 검색 결과를 DB에 동기화 (백그라운드)
   const syncKakaoPlaces = async () => {
     if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
-      console.log('⚠️ 카카오맵 API 없음 - 동기화 스킵');
       setKakaoSyncDone(true);
       return;
     }
 
-    console.log('🔄 카카오맵 검색 시작 (백그라운드)...');
     const places = new window.kakao.maps.services.Places();
     const effectiveRadius = Math.min(searchRadius, 20000);
     
-    console.log(`📍 카카오 검색 반경: ${searchRadius/1000}km (실제 적용: ${effectiveRadius/1000}km)`);
     
     const searchOptions = {
       location: new window.kakao.maps.LatLng(userLocation.latitude, userLocation.longitude),
@@ -168,7 +163,6 @@ function HospitalListPage() {
       });
     }
 
-    console.log(`✅ 카카오맵 동기화 완료! (${savedPlaces.length}개 저장)`);
     setKakaoSyncDone(true);
   };
 
@@ -177,7 +171,6 @@ function HospitalListPage() {
     try {
       const response = await API.post('/hospitals/create-from-kakao/', placeData);
       if (response.data.created) {
-        console.log('  ✅', placeData.name);
         return true;
       }
       return false;
@@ -189,7 +182,6 @@ function HospitalListPage() {
   // ✅ 병원 로드 - 위치와 반경 파라미터 추가
   const loadHospitals = useCallback(async () => {
     if (!userLocation || searchRadius === null) {
-      console.log('⏳ 위치 또는 검색 반경 대기 중...');
       return;
     }
 
@@ -217,11 +209,9 @@ function HospitalListPage() {
         params.ordering = 'name';
       }
       
-      console.log('🔍 병원 검색 파라미터:', params);
       
       const response = await API.get('/hospitals/', { params });
       
-      console.log('✅ API 응답:', response.data);
       
       let hospitalData = [];
       if (response.data.results) {
@@ -255,7 +245,6 @@ function HospitalListPage() {
         sortedHospitals.sort((a, b) => a.calculatedDistance - b.calculatedDistance);
       }
 
-      console.log(`📥 DB 병원: ${sortedHospitals.length}개 (반경: ${searchRadius/1000}km)`);
       setHospitals(sortedHospitals);
     } catch (err) {
       console.error('❌ 병원 목록 로드 실패:', err);

@@ -59,7 +59,6 @@ function App() {
     // 카카오톡 공유 SDK 초기화
     if (window.Kakao && !window.Kakao.isInitialized()) {
       window.Kakao.init('910c2b43257b52df8c83def11d511b95');
-      console.log('✅ 카카오 SDK 초기화:', window.Kakao.isInitialized());
     }
   }, []);
 

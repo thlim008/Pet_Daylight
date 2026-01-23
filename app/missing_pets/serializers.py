@@ -130,7 +130,7 @@ class MissingPetCreateSerializer(serializers.ModelSerializer):
             # 파일 저장
             path = default_storage.save(filename, ContentFile(image_file.read()))
             
-	    # S3 URL 저장
+            # S3 URL 저장
             image_url = default_storage.url(path)
             image_urls.append(image_url)
         
@@ -146,13 +146,19 @@ class MissingPetCreateSerializer(serializers.ModelSerializer):
 
 class MissingPetUpdateSerializer(serializers.ModelSerializer):
     """제보 수정 Serializer"""
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+    existing_images = serializers.JSONField(write_only=True, required=False)
     
     class Meta:
         model = MissingPet
         fields = [
             'category', 'species', 'breed', 'name', 'description',
             'latitude', 'longitude', 'address', 'occurred_at',
-            'contact', 'status'
+            'contact', 'status', 'uploaded_images', 'existing_images'
         ]
     
     def validate_occurred_at(self, value):
@@ -166,3 +172,44 @@ class MissingPetUpdateSerializer(serializers.ModelSerializer):
             except ValueError:
                 raise serializers.ValidationError("날짜 형식이 올바르지 않습니다.")
         return value
+    
+    def update(self, instance, validated_data):
+        """제보 수정 + 이미지 처리"""
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        existing_images = validated_data.pop('existing_images', None)
+        
+        # 기본 필드 업데이트
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # 이미지 처리
+        final_images = []
+        
+        # 1. 기존 이미지 유지 (existing_images에 포함된 것만)
+        if existing_images:
+            final_images.extend(existing_images)
+        
+        # 2. 새 이미지 업로드
+        for index, image_file in enumerate(uploaded_images):
+            # 총 5장 제한 체크
+            if len(final_images) >= 5:
+                break
+                
+            ext = os.path.splitext(image_file.name)[1]
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'missing_pets/{timestamp}_{len(final_images)}{ext}'
+            
+            # 파일 저장
+            path = default_storage.save(filename, ContentFile(image_file.read()))
+            image_url = default_storage.url(path)
+            final_images.append(image_url)
+        
+        # 총 5장 제한
+        instance.images = final_images[:5]
+        instance.save()
+        
+        return instance
+    
+    def to_representation(self, instance):
+        """응답 시 상세 정보 포함"""
+        return MissingPetDetailSerializer(instance, context=self.context).data

@@ -19,7 +19,6 @@ function PasswordResetRequestPage() {
         email: email.trim(),
       });
 
-      console.log('✅ 비밀번호 재설정 이메일 발송 성공:', response.data);
       setSuccess(true);
     } catch (err) {
       console.error('❌ 비밀번호 재설정 요청 실패:', err);
@@ -51,7 +50,6 @@ function PasswordResetRequestPage() {
           errorMessage = errorData;
         } else {
           // 기타 객체 형태
-          console.log('🔍 알 수 없는 에러 형식:', errorData);
           errorMessage = '비밀번호 재설정 요청에 실패했습니다. 이메일 주소를 확인해주세요.';
         }
       } else if (err.message) {

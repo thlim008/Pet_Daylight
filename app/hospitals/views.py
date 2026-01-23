@@ -34,6 +34,7 @@ class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Hospital.objects.all()
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = None
     search_fields = ['name', 'address']
     ordering_fields = ['rating', 'review_count', 'created_at']
     ordering = ['-rating']

@@ -69,10 +69,6 @@ function CommunityCreatePage() {
         data.append('uploaded_images', image);
       });
 
-      console.log('📤 전송 데이터:', {
-        ...formData,
-        images_count: images.length,
-      });
 
       const response = await API.post('/communities/', data, {
         headers: {
@@ -80,7 +76,6 @@ function CommunityCreatePage() {
         },
       });
 
-      console.log('✅ 게시글 등록 성공:', response.data);
       alert('게시글이 등록되었습니다!');
       navigate(`/communities/${response.data.id}`);
     } catch (err) {

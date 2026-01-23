@@ -45,7 +45,6 @@ function PetListPage() {
       const submitData = new FormData();
       
       // 디버깅: 전송할 데이터 확인
-      console.log('📤 전송할 formData:', formData);
       
       // 필수: is_active는 항상 true (활성 상태)
       submitData.append('is_active', 'true');
@@ -86,7 +85,6 @@ function PetListPage() {
       // 몸무게 (숫자, 선택)
       if (formData.weight !== '' && formData.weight !== null && formData.weight !== undefined) {
         submitData.append('weight', formData.weight);
-        console.log('⚖️ weight:', formData.weight, typeof formData.weight);
       }
       
       // 메모 (선택)
@@ -97,16 +95,11 @@ function PetListPage() {
       // 이미지 (선택)
       if (formData.profile_image instanceof File) {
         submitData.append('profile_image', formData.profile_image);
-        console.log('🖼️ 이미지 추가:', formData.profile_image.name);
       }
 
-      console.log('🟢 is_active: true (항상 활성)');
-      console.log('🚀 전송 시작...');
       
       // FormData 내용 확인
-      console.log('📦 FormData 내용:');
       for (let pair of submitData.entries()) {
-        console.log(`  ${pair[0]}: ${pair[1]}`);
       }
       
       if (editingPet) {
@@ -114,12 +107,10 @@ function PetListPage() {
         const response = await API.patch(`/lifecycles/pets/${editingPet.id}/`, submitData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        console.log('✅ 수정 성공:', response.data);
       } else {
         const response = await API.post('/lifecycles/pets/', submitData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        console.log('✅ 생성 성공:', response.data);
       }
       
       setShowForm(false);
@@ -150,13 +141,7 @@ function PetListPage() {
     });
     setImagePreview(pet.profile_image || null);
     setShowForm(true);
-    
-    console.log('📝 수정 모드:', pet);
-    console.log('📝 로드된 데이터:', {
-      name: pet.name,
-      weight: pet.weight,
-      is_neutered: pet.is_neutered
-    });
+
   };
 
   const handleDelete = async (id) => {

@@ -33,7 +33,6 @@ function CommunityDetailPage() {
     try {
       setLoading(true);
       const response = await API.get(`/communities/${id}/`);
-      console.log('✅ 게시글 상세 로드:', response.data);
       setPost(response.data);
     } catch (err) {
       console.error('❌ 게시글 로드 실패:', err);
@@ -74,7 +73,6 @@ function CommunityDetailPage() {
     try {
       setLiking(true);
       const response = await API.post(`/communities/${id}/like/`);
-      console.log('✅ 좋아요 성공:', response.data);
       await loadPost();
     } catch (err) {
       console.error('❌ 좋아요 실패:', err);
@@ -85,34 +83,26 @@ function CommunityDetailPage() {
   };
 
   const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!comment.trim()) return;
+      e.preventDefault();
+      if (!comment.trim()) return;
 
-    try {
-      setSubmittingComment(true);
-      
-      console.log('📤 댓글 전송 데이터:', {
-        community: parseInt(id),
-        content: comment,
-      });
+      try {
+        setSubmittingComment(true);
+        const response = await API.post('/communities/comments/', {
+          community: parseInt(id),
+          content: comment,
+        });
 
-      const response = await API.post('/communities/comments/', {
-        community: parseInt(id),
-        content: comment,
-      });
-      
-      console.log('✅ 댓글 작성 성공:', response.data);
-      
-      setComment('');
-      await loadPost();
-      alert('댓글이 작성되었습니다!');
-    } catch (err) {
-      console.error('❌ 댓글 작성 실패:', err);
-      console.error('❌ 에러 응답:', err.response?.data);
-      alert(`댓글 작성에 실패했습니다: ${err.response?.data?.error || err.message}`);
-    } finally {
-      setSubmittingComment(false);
-    }
+        setComment('');
+        await loadPost();
+        alert('댓글이 작성되었습니다!');
+      } catch (err) {
+        console.error('LOG', err);
+        console.error('LOG', err.response?.data);
+        alert(`댓글 작성에 실패했습니다: ${err.response?.data?.error || err.message}`);
+      } finally {
+        setSubmittingComment(false);
+      }
   };
 
   const handleEditComment = (comment) => {

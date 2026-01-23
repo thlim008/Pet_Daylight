@@ -144,7 +144,11 @@ function PetFormPage() {
       
       // 날짜 필드 (null 체크)
       if (formData.neutered_date) submitData.append('neutered_date', formData.neutered_date);
-      if (formData.birth_date) submitData.append('birth_date', formData.birth_date);
+      if (formData.birth_date_unknown) {
+        submitData.append('birth_date', '');
+      } else if (formData.birth_date) {
+        submitData.append('birth_date', formData.birth_date);
+      }
       if (formData.adoption_date) submitData.append('adoption_date', formData.adoption_date);
       
       // 몸무게
