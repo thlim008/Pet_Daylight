@@ -9,7 +9,7 @@ Pet Daylight는 반려동물 보호자들을 위한 올인원 플랫폼으로, �
 **🔗 Links**
 - **사이트**: [petdaylight.mooo.com](https://petdaylight.mooo.com/)
 - **문서**: [Notion 프로젝트 문서](https://giant-nebula-31e.notion.site/Pet-Daylight-2e12e20d0ef481a4b0a5f3d9e08d381a?pvs=74)
-- **동영상** : 
+- **동영상** : [Petdaylight 기능 소개](https://youtu.be/DF3j2geMv1k)
 - **발표 자료** :
 
 ### 주요 기능
@@ -201,6 +201,7 @@ npm test
 ---
 
 Made with ❤️ for pet lovers
+
 
 
 
