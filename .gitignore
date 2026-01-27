@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-.env
-.env.prod
-node_modules/
-build/
-*.log
-.DS_Store
