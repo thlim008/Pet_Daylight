@@ -1,8 +1,0 @@
-# ===========================
-# Prometheus 모니터링 패키지
-# ===========================
-# requirements_prod.txt에 추가하세요
-
-# Prometheus 메트릭 수집
-django-prometheus==2.3.1
-prometheus-client==0.19.0
