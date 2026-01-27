@@ -10,7 +10,7 @@ Pet Daylight는 반려동물 보호자들을 위한 올인원 플랫폼으로, �
 - **사이트**: [petdaylight.mooo.com](https://petdaylight.mooo.com/)
 - **문서**: [Notion 프로젝트 문서](https://giant-nebula-31e.notion.site/Pet-Daylight-2e12e20d0ef481a4b0a5f3d9e08d381a?pvs=74)
 - **동영상** : [Petdaylight 기능 소개](https://youtu.be/DF3j2geMv1k)
-- **발표 자료** :[Petdaylight 발표 자료](https://www.miricanvas.com/login?redirect=%2Fdesign%2F15comfo%3Flocation%3Ddesign%26type%3Dcopy_link%26access%3Dlink%26permission%3Dviewer)
+- **발표 자료** :[Petdaylight 발표 자료](https://www.miricanvas.com/v/15comfo)
 ### 주요 기능
 
 - 🏥 **동물병원 찾기**: 위치 기반 동물병원 검색 및 리뷰
@@ -200,6 +200,7 @@ npm test
 ---
 
 Made with ❤️ for pet lovers
+
 
 
 
