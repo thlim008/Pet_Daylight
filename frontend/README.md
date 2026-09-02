@@ -10,6 +10,7 @@ React 기반 Pet Daylight 프론트엔드 웹 애플리케이션입니다.
 - [주요 기능](#주요-기능)
 - [페이지 구성](#페이지-구성)
 - [컴포넌트](#컴포넌트)
+- [유틸리티](#유틸리티)
 - [상태 관리](#상태-관리)
 - [API 통신](#api-통신)
 - [스타일링](#스타일링)
@@ -97,10 +98,15 @@ frontend/
 │   │   ├── CommunityCreatePage.js           # 게시글 작성
 │   │   ├── CommunityEditPage.js             # 게시글 수정
 │   │   │
-│   │   └── NotificationPage.js              # 알림
+│   │   ├── NotificationPage.js              # 알림
+│   │   │
+│   │   └── AdminPage.js                     # 관리자 페이지
 │   │
 │   ├── services/             # API 서비스
 │   │   └── api.js           # Axios 인스턴스 및 API 함수
+│   │
+│   ├── utils/                # 유틸리티 함수
+│   │   └── phone.js         # 전화번호 포맷/유효성 검사
 │   │
 │   ├── App.js               # 메인 앱 컴포넌트
 │   ├── App.css              # 앱 스타일
@@ -306,6 +312,14 @@ docker-compose -f docker-compose.prod.yml up -d frontend
 - 댓글 목록
 - 댓글 작성
 
+### 관리자 페이지
+
+**AdminPage**
+- 탭 기반 관리 화면: 회원, 실종/발견/구조 제보, 제보 댓글, 커뮤니티 게시글/댓글, 병원·미용실, 병원 리뷰, 생애주기 가이드
+- 각 항목 조회/수정/삭제
+- 병원·미용실 등록 시 카카오 지도로 위치 지정
+- 생애주기 가이드 등록/수정 (종류, 단계, 체크리스트 등)
+
 ## 🧩 컴포넌트
 
 ### ImageGallery
@@ -379,6 +393,23 @@ import KakaoChannelButton from '../components/KakaoChannelButton';
 
 <KakaoChannelButton />
 ```
+
+## 🧰 유틸리티
+
+### phone.js
+전화번호 입력 포맷팅 및 유효성 검사 함수 모음입니다 (`src/utils/phone.js`).
+
+```jsx
+import { formatPhoneInput, isValidPhone, formatBusinessPhone } from '../utils/phone';
+
+formatPhoneInput('01012345678');     // '010-1234-5678'
+isValidPhone('010-1234-5678');       // true
+formatBusinessPhone('0212345678');   // '02-1234-5678' (지역번호), 대표번호(1588-XXXX)도 지원
+```
+
+- `formatPhoneInput`: 휴대폰 번호(010/011/016/017/018/019) 입력 중 자동 하이픈
+- `isValidPhone`: 휴대폰 번호 형식 검사
+- `formatBusinessPhone`: 병원 등 사업자 전화번호(지역번호·대표번호 포함) 자동 하이픈
 
 ## 🔄 상태 관리
 

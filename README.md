@@ -106,6 +106,7 @@ Pet_Daylight/
 ├── frontend/                   # React 프론트엔드
 ├── monitoring/                 # 모니터링 설정
 ├── nginx/                      # Nginx 설정
+├── scripts/                    # 운영 스크립트 (DB 백업 등)
 ├── docker-compose.yml          # 개발 환경
 ├── docker-compose.prod.yml     # 프로덕션 환경
 └── docker-compose.monitoring.yml  # 모니터링 스택
@@ -120,6 +121,8 @@ Pet_Daylight/
 - **API Documentation**: drf-spectacular (OpenAPI 3.0)
 - **Social Login**: django-allauth (Google, Kakao, Naver)
 - **Image Processing**: Pillow
+- **Email**: SendGrid API (HTTPS 기반 발송, SMTP 포트 차단 환경 대응)
+- **Rate Limiting**: DRF Throttling (로그인/회원가입/비밀번호 재설정 남용 방지)
 
 ### Frontend
 - **Framework**: React 19

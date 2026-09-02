@@ -35,6 +35,7 @@ Django REST Framework 기반 Pet Daylight 백엔드 API 서버입니다.
 - **django-cors-headers**: 4.9.0 - CORS 설정
 - **drf-spectacular**: 0.27.0 - OpenAPI 3.0 문서 자동 생성
 - **python-decouple**: 3.8 - 환경 변수 관리
+- **requests**: SendGrid HTTPS API 이메일 발송 (`config/email_backend.py`)
 
 ## 📁 프로젝트 구조
 
@@ -79,7 +80,12 @@ Pet_Daylight/
 │   ├── settings_prod.py      # 프로덕션 환경 설정
 │   ├── urls.py               # URL 라우팅
 │   ├── wsgi.py              # WSGI 설정
-│   └── storage_backends.py   # 파일 스토리지 설정
+│   ├── storage_backends.py   # 파일 스토리지 설정
+│   └── email_backend.py      # SendGrid HTTPS API 이메일 백엔드
+│
+├── app/validators.py         # 공통 유효성 검사 함수
+├── scripts/
+│   └── backup_db.sh          # PostgreSQL 자동 백업 스크립트
 │
 ├── manage.py                 # Django 관리 명령어
 ├── requirements.txt          # 개발 환경 의존성
@@ -157,14 +163,22 @@ http://localhost:8000/api/schema/
 
 **주요 엔드포인트:**
 ```
-POST   /api/accounts/register/          # 회원가입
-POST   /api/accounts/login/             # 로그인
-POST   /api/accounts/logout/            # 로그아웃
-GET    /api/accounts/profile/           # 프로필 조회
-PATCH  /api/accounts/profile/           # 프로필 수정
-POST   /api/accounts/password/reset/    # 비밀번호 재설정 요청
-POST   /api/accounts/password/reset/confirm/  # 비밀번호 재설정 확인
+POST   /api/accounts/                          # 회원가입
+POST   /api/accounts/login/                    # 로그인
+GET    /api/accounts/{id}/                     # 프로필 조회
+PATCH  /api/accounts/{id}/                     # 프로필 수정
+POST   /api/accounts/password_reset_request/   # 비밀번호 재설정 요청 (이메일 발송)
+POST   /api/accounts/password_reset_confirm/   # 비밀번호 재설정 확인
 ```
+
+**요청 제한 (Throttling):**
+무차별 대입 공격 및 이메일 스팸 방지를 위해 `ScopedRateThrottle`을 적용했습니다 (`config/settings.py`).
+
+| 액션 | scope | 제한 |
+|---|---|---|
+| `login` | `login` | 10회/분 |
+| `password_reset_request` | `password_reset` | 3회/시간 |
+| `create` (회원가입) | `register` | 10회/시간 |
 
 **커스텀 User 모델 필드:**
 - email (이메일, 로그인 ID)
@@ -290,25 +304,31 @@ POST   /api/communities/{id}/comments/      # 댓글 작성
 ### 6. notifications (알림)
 
 **주요 기능:**
-- 활동 알림 (댓글, 좋아요, 제보 등)
-- 일정 알림 (예방접종, 진료 일정 등)
-- 읽음/안읽음 상태 관리
-- 알림 삭제
+- 반경 기반 신규 제보 알림 (실종/발견/구조 제보 등록 시, 알림 설정 거리 내 사용자에게 자동 생성)
+- 제보 해결 알림 (댓글 남긴 사용자에게 작성자 본인 제외 자동 알림)
+- 댓글 알림 (제보 작성자에게)
+- 읽음/안읽음 상태 관리, 개별/전체 삭제
 
 **주요 엔드포인트:**
 ```
-GET    /api/notifications/              # 알림 목록
-GET    /api/notifications/unread/       # 읽지 않은 알림 개수
-PATCH  /api/notifications/{id}/read/    # 알림 읽음 처리
-DELETE /api/notifications/{id}/         # 알림 삭제
+GET    /api/notifications/                       # 알림 목록 (본인 알림만, is_read/type 필터 지원)
+GET    /api/notifications/{id}/                   # 알림 상세
+PATCH  /api/notifications/{id}/mark_as_read/       # 알림 읽음 처리
+POST   /api/notifications/mark_all_as_read/        # 전체 읽음 처리
+GET    /api/notifications/unread_count/            # 읽지 않은 알림 개수
+DELETE /api/notifications/{id}/                    # 알림 개별 삭제
+DELETE /api/notifications/clear_all/                # 전체 삭제
 ```
 
 **주요 모델:**
 - **Notification**: 알림 정보
-  - notification_type (알림 유형)
-  - content (알림 내용)
+  - type (`new_report`/`comment`/`resolved`/`community`/`like`)
+  - title, message
+  - missing_pet, community (관련 객체, 선택)
+  - link (클릭 시 이동 경로)
   - is_read (읽음 여부)
-  - related_id (관련 객체 ID)
+
+거리 계산은 `app/missing_pets/views.py`의 Haversine 공식(`calculate_distance`)을 사용하며, 사용자별 `notification_distance`(알림 반경) 설정값과 비교해 알림 대상을 선정합니다.
 
 ## 🔐 인증 시스템
 
@@ -427,6 +447,18 @@ python populate_lifecycle_guides.py
 python manage.py loaddata initial_data.json
 ```
 
+### 자동 백업
+
+`scripts/backup_db.sh`로 PostgreSQL DB를 백업합니다. crontab에 등록해 매일 실행하면 `/root/backups`에 7일치 백업(`.sql.gz`)만 보관하며 이전 파일은 자동 삭제됩니다.
+
+```bash
+# 수동 실행
+DB_NAME=petdaylight_db DB_USER=postgres DB_PASSWORD=postgres ./scripts/backup_db.sh
+
+# crontab 등록 예시 (매일 새벽 3시)
+0 3 * * * /path/to/scripts/backup_db.sh >> /var/log/petdaylight_backup.log 2>&1
+```
+
 ## ⚙️ 환경 변수
 
 `.env` 파일에 다음 환경 변수를 설정하세요:
@@ -465,11 +497,19 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_STORAGE_BUCKET_NAME=your-bucket-name
 AWS_S3_REGION_NAME=ap-northeast-2
 
-# Email (선택사항)
+# Email - 우선순위: SendGrid API > SMTP > 콘솔 출력 (config/settings.py 참고)
+SENDGRID_API_KEY=your-sendgrid-api-key
+DEFAULT_FROM_EMAIL=Pet Daylight <noreply@petdaylight.com>
+
+# Email - SMTP (SendGrid 미설정 시 대체 수단, 아웃바운드 587 포트가 열려있어야 함)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
+EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
+
+# OpenRouter (선택사항)
+OPENROUTER_API_KEY=your-openrouter-api-key
 ```
 
 ## 🧪 테스트
