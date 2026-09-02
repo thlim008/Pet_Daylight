@@ -10,7 +10,9 @@ function HospitalListPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [searchRadius, setSearchRadius] = useState(null); // ✅ null로 시작 (로딩 전)
   const [kakaoSyncDone, setKakaoSyncDone] = useState(false);
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 30;
+
   // 필터 상태
   const [filters, setFilters] = useState({
     type: '', // hospital, grooming
@@ -92,6 +94,45 @@ function HospitalListPage() {
     return R * c; // 미터 단위
   };
 
+  // 위도/경도 기준 지점에서 특정 방위각·거리만큼 떨어진 좌표 계산
+  const offsetLatLng = (lat, lng, distanceMeters, bearingDeg) => {
+    const R = 6371000;
+    const bearing = bearingDeg * Math.PI / 180;
+    const lat1 = lat * Math.PI / 180;
+    const lng1 = lng * Math.PI / 180;
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(distanceMeters / R) +
+      Math.cos(lat1) * Math.sin(distanceMeters / R) * Math.cos(bearing)
+    );
+    const lng2 = lng1 + Math.atan2(
+      Math.sin(bearing) * Math.sin(distanceMeters / R) * Math.cos(lat1),
+      Math.cos(distanceMeters / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
+    return { latitude: lat2 * 180 / Math.PI, longitude: lng2 * 180 / Math.PI };
+  };
+
+  // 한 지점 기준으로 카카오 키워드 검색을 페이지네이션까지 끝까지 수집 (최대 45개)
+  const searchAllPages = (places, keyword, location, radius) => {
+    return new Promise((resolve) => {
+      const collected = [];
+      const searchOptions = {
+        location: new window.kakao.maps.LatLng(location.latitude, location.longitude),
+        radius,
+        sort: window.kakao.maps.services.SortBy.DISTANCE
+      };
+      places.keywordSearch(keyword, (result, status, pagination) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          collected.push(...result);
+          if (pagination.hasNextPage) {
+            pagination.nextPage();
+            return;
+          }
+        }
+        resolve(collected);
+      }, searchOptions);
+    });
+  };
+
   // 카카오맵 검색 결과를 DB에 동기화 (백그라운드)
   const syncKakaoPlaces = async () => {
     if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
@@ -101,66 +142,51 @@ function HospitalListPage() {
 
     const places = new window.kakao.maps.services.Places();
     const effectiveRadius = Math.min(searchRadius, 20000);
-    
-    
-    const searchOptions = {
-      location: new window.kakao.maps.LatLng(userLocation.latitude, userLocation.longitude),
-      radius: effectiveRadius,
-      sort: window.kakao.maps.services.SortBy.DISTANCE
-    };
 
-    const savedPlaces = [];
-    
-    // 병원 검색 & 저장
-    const hospitalKeywords = ['동물병원'];
-    for (const keyword of hospitalKeywords) {
-      await new Promise((resolve) => {
-        places.keywordSearch(keyword, async (result, status) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            for (const place of result.slice(0, 10)) { // 상위 10개만
-              const saved = await saveToDb({
-                kakao_id: place.id,
-                name: place.place_name,
-                type: 'hospital',
-                address: place.road_address_name || place.address_name,
-                phone: place.phone || '',
-                latitude: place.y,
-                longitude: place.x,
-                category: place.category_name,
-                place_url: place.place_url
-              });
-              if (saved) savedPlaces.push(place.place_name);
-            }
-          }
-          resolve();
-        }, searchOptions);
-      });
+    // 검색 지점: 중심 + (반경이 넓을 때) 밀집 지역 캡(45개) 우회용 8방위 보조 지점
+    const searchPoints = [userLocation];
+    if (effectiveRadius > 8000) {
+      const satelliteDistance = effectiveRadius * 0.7;
+      for (let bearing = 0; bearing < 360; bearing += 45) {
+        searchPoints.push(offsetLatLng(userLocation.latitude, userLocation.longitude, satelliteDistance, bearing));
+      }
     }
 
-    // 미용 검색 & 저장
-    const groomingKeywords = ['애견미용'];
-    for (const keyword of groomingKeywords) {
-      await new Promise((resolve) => {
-        places.keywordSearch(keyword, async (result, status) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            for (const place of result.slice(0, 10)) {
-              const saved = await saveToDb({
-                kakao_id: place.id,
-                name: place.place_name,
-                type: 'grooming',
-                address: place.road_address_name || place.address_name,
-                phone: place.phone || '',
-                latitude: place.y,
-                longitude: place.x,
-                category: place.category_name,
-                place_url: place.place_url
-              });
-              if (saved) savedPlaces.push(place.place_name);
+    const savedPlaces = [];
+    const seen = new Map(); // kakao_id -> place, 중복 제거용
+
+    const keywordsByType = { hospital: ['동물병원'], grooming: ['애견미용'] };
+
+    for (const [type, keywords] of Object.entries(keywordsByType)) {
+      for (const keyword of keywords) {
+        for (const point of searchPoints) {
+          const results = await searchAllPages(places, keyword, point, effectiveRadius);
+          for (const place of results) {
+            if (!seen.has(place.id)) {
+              seen.set(place.id, { ...place, _type: type });
             }
           }
-          resolve();
-        }, searchOptions);
+        }
+      }
+    }
+
+    // 실제 사용자 위치 기준으로 반경 내에 있는 것만 저장 (보조 지점 검색 결과가 반경 밖일 수 있음)
+    for (const place of seen.values()) {
+      const distance = getDistance(userLocation.latitude, userLocation.longitude, parseFloat(place.y), parseFloat(place.x));
+      if (distance > effectiveRadius) continue;
+
+      const saved = await saveToDb({
+        kakao_id: place.id,
+        name: place.place_name,
+        type: place._type,
+        address: place.road_address_name || place.address_name,
+        phone: place.phone || '',
+        latitude: place.y,
+        longitude: place.x,
+        category: place.category_name,
+        place_url: place.place_url
       });
+      if (saved) savedPlaces.push(place.place_name);
     }
 
     setKakaoSyncDone(true);
@@ -246,6 +272,7 @@ function HospitalListPage() {
       }
 
       setHospitals(sortedHospitals);
+      setCurrentPage(1);
     } catch (err) {
       console.error('❌ 병원 목록 로드 실패:', err);
       setHospitals([]);
@@ -517,7 +544,7 @@ function HospitalListPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hospitals.map((hospital) => (
+            {hospitals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((hospital) => (
               <div
                 key={hospital.id}
                 onClick={() => navigate(`/hospitals/${hospital.id}`)}
@@ -611,6 +638,29 @@ function HospitalListPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 페이지네이션 */}
+        {hospitals.length > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              이전
+            </button>
+            <span className="text-sm text-gray-600 px-2">
+              {currentPage} / {Math.ceil(hospitals.length / PAGE_SIZE)} 페이지 ({hospitals.length}개)
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(Math.ceil(hospitals.length / PAGE_SIZE), p + 1))}
+              disabled={currentPage >= Math.ceil(hospitals.length / PAGE_SIZE)}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              다음
+            </button>
           </div>
         )}
       </main>

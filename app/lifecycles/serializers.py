@@ -23,12 +23,26 @@ class LifecycleGuideSerializer(serializers.ModelSerializer):
     class Meta:
         model = LifecycleGuide
         fields = [
-            'id', 'species', 'stage', 'title', 'description',
+            'id', 'species', 'custom_species_name', 'emoji', 'stage', 'title', 'description',
             'content', 'checklist', 'checklist_progress', 'image', 'order',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
-    
+
+    def validate(self, data):
+        """강아지/고양이는 species+stage 조합이 하나만 존재해야 함 (수정만 가능)"""
+        species = data.get('species', getattr(self.instance, 'species', None))
+        stage = data.get('stage', getattr(self.instance, 'stage', None))
+        if species in ('dog', 'cat'):
+            qs = LifecycleGuide.objects.filter(species=species, stage=stage)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    '강아지/고양이는 종류+단계 조합당 가이드가 하나만 존재할 수 있습니다. 기존 가이드를 수정해주세요.'
+                )
+        return data
+
     def get_checklist_progress(self, obj):
         """현재 사용자의 체크리스트 완료 상태"""
         request = self.context.get('request')

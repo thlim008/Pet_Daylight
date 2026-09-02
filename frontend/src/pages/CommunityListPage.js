@@ -373,7 +373,7 @@ function CommunityListPage() {
                             {post.user.profile_image ? (
                               <img
                                 src={post.user.profile_image}
-                                alt={post.user.username}
+                                alt={post.user.nickname || post.user.username}
                                 className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
                               />
                             ) : (
@@ -382,7 +382,7 @@ function CommunityListPage() {
                               </div>
                             )}
                             <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{post.user.username}</p>
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{post.user.nickname || post.user.username}</p>
                               <p className="text-xs text-gray-500">
                                 {new Date(post.created_at).toLocaleDateString('ko-KR')}
                               </p>

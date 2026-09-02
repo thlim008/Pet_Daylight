@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 환경변수에서 API URL 로드
-const API_BASE_URL = 'https://petdaylight.mooo.com/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 const API = axios.create({
   baseURL: API_BASE_URL,
 });

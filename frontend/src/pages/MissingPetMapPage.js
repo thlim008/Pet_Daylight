@@ -249,7 +249,7 @@ function MissingPetMapPage() {
   const getMarkerImage = (category) => {
     const colors = {
       missing: '#EF4444',  // 빨강
-      found: '#3B82F6',    // 파랑
+      found: '#8B5CF6',    // 보라
       rescue: '#10B981'    // 초록
     };
 
@@ -271,7 +271,7 @@ function MissingPetMapPage() {
   const getCategoryColor = (category) => {
     const colors = {
       missing: 'bg-red-100 text-red-700',
-      found: 'bg-blue-100 text-blue-700',
+      found: 'bg-purple-100 text-purple-700',
       rescue: 'bg-green-100 text-green-700'
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
@@ -440,7 +440,7 @@ function MissingPetMapPage() {
                 <span className="text-sm font-medium text-gray-700">실종</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-5 h-5 bg-blue-500 rounded-full shadow-md flex-shrink-0"></div>
+                <div className="w-5 h-5 bg-purple-500 rounded-full shadow-md flex-shrink-0"></div>
                 <span className="text-sm font-medium text-gray-700">발견</span>
               </div>
               <div className="flex items-center space-x-3">

@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from django.utils import timezone
 from .models import LifecycleGuide, Pet, UserChecklistProgress
 from .serializers import (
@@ -14,13 +14,17 @@ from rest_framework.views import APIView
 from django.conf import settings
 import requests
 
-class LifecycleGuideViewSet(viewsets.ReadOnlyModelViewSet):
-    """생애주기 가이드 ViewSet (읽기 전용)"""
+class LifecycleGuideViewSet(viewsets.ModelViewSet):
+    """생애주기 가이드 ViewSet (조회는 누구나, 생성/수정/삭제는 관리자만)"""
     queryset = LifecycleGuide.objects.all()
     serializer_class = LifecycleGuideSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     ordering = ['species', 'order']
-    
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [IsAuthenticatedOrReadOnly()]
+
     def get_queryset(self):
         """필터링된 queryset 반환"""
         queryset = LifecycleGuide.objects.all()
@@ -29,14 +33,40 @@ class LifecycleGuideViewSet(viewsets.ReadOnlyModelViewSet):
         species = self.request.query_params.get('species', None)
         if species:
             queryset = queryset.filter(species=species)
-        
+
+        # 기타(other) 중 구체적인 종류 이름으로 필터 (예: 도마뱀, 앵무새)
+        # species=other인데 이름 지정이 없으면, 이름 없는(진짜 '기타') 가이드만 보여줌
+        custom_species_name = self.request.query_params.get('custom_species_name', None)
+        if custom_species_name:
+            queryset = queryset.filter(custom_species_name=custom_species_name)
+        elif species == 'other':
+            queryset = queryset.filter(custom_species_name='')
+
         # 단계별 필터
         stage = self.request.query_params.get('stage', None)
         if stage:
             queryset = queryset.filter(stage=stage)
-        
+
         return queryset.order_by('species', 'order')
-    
+
+    @action(detail=False, methods=['get'])
+    def custom_species_list(self, request):
+        """
+        '기타' 중 실제로 가이드가 등록된 구체적인 종류 이름 목록
+        GET /api/lifecycles/guides/custom_species_list/
+        """
+        guides = (
+            LifecycleGuide.objects
+            .filter(species='other')
+            .exclude(custom_species_name='')
+            .order_by('custom_species_name', 'id')
+        )
+        seen = {}
+        for g in guides:
+            seen.setdefault(g.custom_species_name, g.emoji or '🐾')
+        result = [{'name': name, 'emoji': emoji} for name, emoji in seen.items()]
+        return Response(result)
+
     @action(detail=False, methods=['get'])
     def stages(self, request):
         """
@@ -504,7 +534,7 @@ class SymptomCheckerView(APIView):
                     'Content-Type': 'application/json',
                 },
                 json={
-                    'model': 'google/gemini-2.0-flash-exp:free',
+                    'model': 'minimax/minimax-m3:free',
                     'max_tokens': 500,
                     'messages': messages,
                 }

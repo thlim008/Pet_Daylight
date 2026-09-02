@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import RegexValidator
 
 
 class MissingPet(models.Model):
@@ -87,6 +88,10 @@ class MissingPet(models.Model):
     # 연락처
     contact = models.CharField(
         max_length=100,
+        validators=[RegexValidator(
+            regex=r'^01[016789]-\d{3,4}-\d{4}$',
+            message='전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)'
+        )],
         help_text="연락처"
     )
     

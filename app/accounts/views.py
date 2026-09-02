@@ -6,7 +6,7 @@ accounts/views.py - 완성본
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 
@@ -32,6 +32,16 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+    def get_throttles(self):
+        """남용 우려가 있는 액션에 요청 빈도 제한 적용"""
+        scope_by_action = {
+            'login': 'login',
+            'password_reset_request': 'password_reset',
+            'create': 'register',
+        }
+        self.throttle_scope = scope_by_action.get(self.action)
+        return super().get_throttles()
 
     def get_permissions(self):
         """
@@ -165,6 +175,55 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    def get_queryset(self):
+        """일반 사용자는 목록 조회 불가 (관리자만 전체 회원 조회 가능)"""
+        if self.action == 'list' and not self.request.user.is_staff:
+            return User.objects.none()
+        return User.objects.all().order_by('id')
+
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj == request.user):
+            return Response({'error': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().retrieve(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj == request.user):
+            return Response({'error': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj == request.user):
+            return Response({'error': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj == request.user):
+            return Response({'error': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        if obj.is_staff or obj.is_superuser:
+            return Response({'error': '관리자 계정은 삭제할 수 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def set_password(self, request, pk=None):
+        """
+        관리자가 특정 회원의 비밀번호를 강제로 변경
+        POST /api/accounts/{id}/set_password/
+        Request Body: { "password": "새비밀번호" }
+        """
+        target = self.get_object()
+        if not target.has_usable_password() and target.socialaccount_set.exists():
+            return Response({'error': '소셜 로그인 계정은 비밀번호를 설정할 수 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        password = request.data.get('password', '')
+        if len(password) < 8:
+            return Response({'error': '비밀번호는 8자 이상이어야 합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        target.set_password(password)
+        target.save()
+        return Response({'message': '비밀번호가 변경되었습니다.'})
+
     # ==========================================
     # 내 정보 조회
     # ==========================================
@@ -209,40 +268,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(
             {
                 'message': '위치가 업데이트되었습니다.',
-                'user': UserSerializer(user).data
-            }
-        )
-
-    # ==========================================
-    # 알림 설정 업데이트
-    # ==========================================
-    @action(detail=False, methods=['patch'])
-    def update_notification_settings(self, request):
-        """
-        알림 설정 업데이트
-        PATCH /api/accounts/update_notification_settings/
-        
-        Request Body:
-        {
-            "push_notifications_enabled": true,
-            "email_notifications_enabled": false
-        }
-        """
-        user = request.user
-        
-        # 푸시 알림 설정
-        if 'push_notifications_enabled' in request.data:
-            user.push_notifications_enabled = request.data.get('push_notifications_enabled')
-        
-        # 이메일 알림 설정
-        if 'email_notifications_enabled' in request.data:
-            user.email_notifications_enabled = request.data.get('email_notifications_enabled')
-        
-        user.save()
-
-        return Response(
-            {
-                'message': '알림 설정이 업데이트되었습니다.',
                 'user': UserSerializer(user).data
             }
         )

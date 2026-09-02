@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator
+from app.validators import validate_image_size
 
 
 class LifecycleGuide(models.Model):
@@ -24,6 +26,17 @@ class LifecycleGuide(models.Model):
         choices=SPECIES_CHOICES,
         default='dog',
         help_text="반려동물 종류"
+    )
+    custom_species_name = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text="종류가 '기타'일 때 구체적인 이름 (예: 도마뱀, 햄스터)"
+    )
+    emoji = models.CharField(
+        max_length=10,
+        blank=True,
+        default='🐾',
+        help_text="탭/목록에 표시할 이모지"
     )
     stage = models.CharField(
         max_length=20,
@@ -52,13 +65,15 @@ class LifecycleGuide(models.Model):
         upload_to='lifecycles/',
         null=True,
         blank=True,
+        validators=[validate_image_size],
         help_text="대표 이미지"
     )
     
     # 정렬 순서
     order = models.IntegerField(
-        default=0,
-        help_text="표시 순서"
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text="표시 순서 (1 이상)"
     )
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,8 +84,14 @@ class LifecycleGuide(models.Model):
         verbose_name = '생애주기 가이드'
         verbose_name_plural = '생애주기 가이드 목록'
         ordering = ['species', 'order']
-        # species와 stage 조합을 unique로
-        unique_together = [['species', 'stage']]
+        # 강아지/고양이는 단계별 가이드가 하나뿐(수정만 가능), 기타는 여러 개 추가 가능
+        constraints = [
+            models.UniqueConstraint(
+                fields=['species', 'stage'],
+                condition=models.Q(species__in=['dog', 'cat']),
+                name='unique_species_stage_for_dog_cat',
+            )
+        ]
     
     def __str__(self):
         return f"[{self.get_species_display()}] {self.get_stage_display()}: {self.title}"
@@ -196,6 +217,7 @@ class Pet(models.Model):
         upload_to='pets/',
         null=True,
         blank=True,
+        validators=[validate_image_size],
         help_text="프로필 사진"
     )
     notes = models.TextField(
@@ -353,6 +375,7 @@ class PetPhoto(models.Model):
     )
     image = models.ImageField(
         upload_to='pet_photos/',
+        validators=[validate_image_size],
         help_text="사진"
     )
     caption = models.CharField(

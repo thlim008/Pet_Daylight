@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '../services/api';
 import KakaoMap from '../components/KakaoMap';
+import { formatPhoneInput, isValidPhone } from '../utils/phone';
 
 const API_BASE_URL = 'https://petdaylight.mooo.com';
 
@@ -118,6 +119,11 @@ function MissingPetEditPage() {
     
     if (!formData.species || !formData.description || !formData.address || !formData.occurred_at || !formData.contact) {
       alert('필수 항목을 모두 입력해주세요.');
+      return;
+    }
+
+    if (!isValidPhone(formData.contact)) {
+      alert('연락처 형식이 올바르지 않습니다. (예: 010-1234-5678)');
       return;
     }
 
@@ -382,8 +388,9 @@ function MissingPetEditPage() {
                   type="tel"
                   name="contact"
                   value={formData.contact}
-                  onChange={handleInputChange}
+                  onChange={(e) => setFormData({ ...formData, contact: formatPhoneInput(e.target.value) })}
                   onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  maxLength={13}
                   placeholder="010-0000-0000"
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 />

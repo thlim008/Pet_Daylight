@@ -46,13 +46,26 @@ function NotificationPage() {
         ));
       }
 
-      if (notification.missing_pet) {
+      if (notification.link) {
+        navigate(notification.link);
+      } else if (notification.missing_pet) {
         navigate(`/missing-pets/${notification.missing_pet}`);
       } else if (notification.community) {
         navigate(`/communities/${notification.community}`);
       }
     } catch (err) {
       console.error('⛔ 알림 처리 실패:', err);
+    }
+  };
+
+  const handleDeleteOne = async (e, notification) => {
+    e.stopPropagation();
+    try {
+      await API.delete(`/notifications/${notification.id}/`);
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+    } catch (err) {
+      console.error('⛔ 알림 삭제 실패:', err);
+      alert('알림 삭제에 실패했습니다.');
     }
   };
 
@@ -232,9 +245,20 @@ function NotificationPage() {
                       <h3 className="text-lg font-bold text-gray-900">
                         {notification.title}
                       </h3>
-                      {!notification.is_read && (
-                        <span className="flex-shrink-0 w-3 h-3 bg-blue-500 rounded-full ml-3 mt-1"></span>
-                      )}
+                      <div className="flex items-center flex-shrink-0 ml-3">
+                        {!notification.is_read && (
+                          <span className="w-3 h-3 bg-blue-500 rounded-full mr-3 mt-1"></span>
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteOne(e, notification)}
+                          className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                          title="삭제"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     
                     <p className="text-gray-700 mb-3 leading-relaxed">

@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 import MissingPetListPage from './pages/MissingPetListPage';
 import MissingPetCreatePage from './pages/MissingPetCreatePage';
 import MissingPetDetailPage from './pages/MissingPetDetailPage';
@@ -93,6 +94,16 @@ function App() {
           element={
             <PrivateRoute>
               <ProfilePage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 관리자 페이지 */}
+        <Route
+          path="/admin-panel"
+          element={
+            <PrivateRoute>
+              <AdminPage />
             </PrivateRoute>
           }
         />

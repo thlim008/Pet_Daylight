@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 
+function withEulReul(word) {
+  if (!word) return '를';
+  const lastChar = word[word.length - 1];
+  const code = lastChar.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return '를';
+  const hasBatchim = (code - 0xac00) % 28 !== 0;
+  return hasBatchim ? '을' : '를';
+}
+
 function PetDashboard() {
   const navigate = useNavigate();
   const [myPets, setMyPets] = useState([]);
@@ -58,20 +67,31 @@ function PetDashboard() {
   const loadRelevantGuides = async (pet) => {
     try {
       const stage = getStageFromAge(pet.age_in_years);
-      const response = await API.get('/lifecycles/guides/', {
-        params: {
-          species: pet.species,
-          stage: stage
-        }
-      });
-      setRelevantGuides(response.data.results || response.data);
+      const params = { species: pet.species, stage };
+
+      // '기타' 종류는 품종란에 적어둔 구체적인 이름(예: 앵무새)으로 먼저 매칭 시도
+      if (pet.species === 'other' && pet.breed) {
+        params.custom_species_name = pet.breed;
+      }
+
+      let response = await API.get('/lifecycles/guides/', { params });
+      let data = response.data.results || response.data;
+
+      // 구체적인 종류로 매칭되는 가이드가 없으면 일반 '기타' 가이드로 재시도
+      if (data.length === 0 && params.custom_species_name) {
+        delete params.custom_species_name;
+        response = await API.get('/lifecycles/guides/', { params });
+        data = response.data.results || response.data;
+      }
+
+      setRelevantGuides(data);
     } catch (err) {
       console.error('❌ 가이드 로드 실패:', err);
     }
   };
 
   const getStageFromAge = (age) => {
-    if (age === null) return 'adoption';
+    if (age === null) return 'health';
     if (age < 1) return 'puppy';
     if (age < 7) return 'health';
     return 'senior';
@@ -435,7 +455,7 @@ function PetDashboard() {
                   <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <div>
                       <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-                        📚 {selectedPet.name}를 위한 가이드
+                        📚 {selectedPet.name}{withEulReul(selectedPet.name)} 위한 가이드
                       </h3>
                       <p className="text-sm sm:text-base text-gray-600">
                         현재 단계에 필요한 정보를 확인하세요

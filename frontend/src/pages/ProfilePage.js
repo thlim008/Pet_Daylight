@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import API from '../services/api';
+import { formatPhoneInput, isValidPhone } from '../utils/phone';
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ function ProfilePage() {
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // 회원탈퇴 상태
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // 비밀번호 변경 상태
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -155,6 +162,12 @@ function ProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.phone_number && !isValidPhone(formData.phone_number)) {
+      setMessage('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678) ❌');
+      return;
+    }
+
     setSaving(true);
     setMessage('');
 
@@ -234,6 +247,48 @@ function ProfilePage() {
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    try {
+      const data = new FormData();
+      data.append('profile_image', file);
+      await API.patch(`/accounts/${user.id}/`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // 수정용 Serializer는 display_image 등 일부 필드를 안 내려주므로 /me/로 새로 조회
+      await loadUser();
+      setMessage('프로필 사진이 변경되었습니다! ✅');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.error('프로필 사진 변경 실패:', err);
+      alert('프로필 사진 변경에 실패했습니다.');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== '회원탈퇴') {
+      alert('"회원탈퇴"를 정확히 입력해주세요.');
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      await API.delete(`/accounts/${user.id}/`);
+      localStorage.clear();
+      alert('회원탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.');
+      navigate('/login');
+    } catch (err) {
+      console.error('회원탈퇴 실패:', err);
+      alert('회원탈퇴에 실패했습니다: ' + (err.response?.data?.error || '잠시 후 다시 시도해주세요.'));
+      setDeletingAccount(false);
+    }
   };
 
   const getCategoryEmoji = (category) => {
@@ -361,6 +416,34 @@ function ProfilePage() {
             )}
           </div>
 
+          {/* 프로필 사진 */}
+          <div className="flex items-center space-x-4 mb-6 pb-6 border-b border-gray-100">
+            {user.display_image ? (
+              <img
+                src={user.display_image}
+                alt="프로필 사진"
+                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+                <span className="text-3xl">👤</span>
+              </div>
+            )}
+            <div>
+              <label className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all cursor-pointer">
+                {uploadingAvatar ? '업로드 중...' : '사진 변경'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  disabled={uploadingAvatar}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-400 mt-1">JPG, PNG 등 이미지 파일</p>
+            </div>
+          </div>
+
           {editing ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -393,7 +476,8 @@ function ProfilePage() {
                   type="tel"
                   name="phone_number"
                   value={formData.phone_number}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, phone_number: formatPhoneInput(e.target.value) })}
+                  maxLength={13}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                   placeholder="010-1234-5678"
                 />
@@ -645,6 +729,49 @@ function ProfilePage() {
           )}
         </div>
 
+        {/* 회원탈퇴 */}
+        <div className="bg-white rounded-2xl p-8 border border-red-100 mb-6">
+          <h2 className="text-lg font-bold text-red-600 mb-1">회원탈퇴</h2>
+          <p className="text-sm text-gray-500 mb-4">탈퇴 시 계정 정보가 삭제되며 되돌릴 수 없습니다.</p>
+
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-all"
+            >
+              회원탈퇴 진행
+            </button>
+          ) : (
+            <div className="space-y-3 max-w-sm">
+              <p className="text-sm text-gray-700">
+                정말 탈퇴하시려면 아래 칸에 <span className="font-bold">회원탈퇴</span>를 입력해주세요.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="회원탈퇴"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-50 outline-none transition-all"
+              />
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirmText !== '회원탈퇴'}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all disabled:opacity-50"
+                >
+                  {deletingAccount ? '처리 중...' : '탈퇴하기'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 내 활동 섹션 */}
         <div className="bg-white rounded-2xl p-8 border border-gray-200">
           <div className="mb-6">
@@ -808,14 +935,14 @@ function ProfilePage() {
                       )}
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">{report.pet_name}</h3>
+                          <h3 className="text-lg font-bold text-gray-900">{report.name}</h3>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(report.status).color}`}>
                             {getStatusBadge(report.status).label}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{report.breed} · {report.species === 'dog' ? '강아지' : '고양이'}</p>
-                        <p className="text-xs text-gray-500">📍 {report.location}</p>
-                        <p className="text-xs text-gray-500 mt-1">{formatDate(report.last_seen_date)}</p>
+                        <p className="text-xs text-gray-500">📍 {report.address}</p>
+                        <p className="text-xs text-gray-500 mt-1">{formatDate(report.occurred_at)}</p>
                       </div>
                     </div>
                   </div>

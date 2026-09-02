@@ -117,6 +117,14 @@ function HomePage() {
                   </span>
                 </button>
               )}
+              {user?.is_staff && (
+                <button
+                  onClick={() => navigate('/admin-panel')}
+                  className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all"
+                >
+                  관리자
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
@@ -170,6 +178,17 @@ function HomePage() {
           {/* 모바일 드롭다운 메뉴 */}
           {isMobileMenuOpen && (
             <div className="md:hidden mt-3 pt-3 border-t border-gray-200 space-y-2">
+              {user?.is_staff && (
+                <button
+                  onClick={() => {
+                    navigate('/admin-panel');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all"
+                >
+                  관리자
+                </button>
+              )}
               <button
                 onClick={() => {
                   handleLogout();
@@ -286,7 +305,7 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     실종 제보
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
                     실종 정보를 등록하고 공유하세요
                   </p>
                 </div>
@@ -302,7 +321,7 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     커뮤니티
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
                     반려동물 관련 정보와 경험을 나누는 따뜻한 커뮤니티
                   </p>
                 </div>
@@ -318,7 +337,7 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     내 펫 관리
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
                     반려동물의 건강과 생애주기를 관리하세요
                   </p>
                 </div>
@@ -334,7 +353,7 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     병원/미용 찾기
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
 		    주변 병원과 미용실을 찾고 리뷰를 확인하세요
                   </p>
                 </div>
@@ -350,7 +369,7 @@ function HomePage() {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
                     AI 증상 체커
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow">
+                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
                     반려동물 증상을 AI와 상담하고 조언을 받아보세요
                   </p>
                   <span className="inline-block mt-2 px-2 py-1 bg-amber-100 text-green-700 text-xs rounded-full w-fit">

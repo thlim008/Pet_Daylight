@@ -303,12 +303,14 @@ function HospitalDetailPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">🕐 영업시간</h2>
             
             <div className="space-y-3">
-              {Object.entries(hospital.opening_hours).map(([day, hours]) => (
-                <div key={day} className="flex items-center justify-between">
-                  <span className="text-gray-700 font-medium w-20">{day}</span>
-                  <span className="text-gray-600">{hours}</span>
-                </div>
-              ))}
+              {['월', '화', '수', '목', '금', '토', '일']
+                .filter((day) => hospital.opening_hours[day])
+                .map((day) => (
+                  <div key={day} className="flex items-center justify-between">
+                    <span className="text-gray-700 font-medium w-20">{day}</span>
+                    <span className="text-gray-600">{hospital.opening_hours[day]}</span>
+                  </div>
+                ))}
             </div>
           </div>
         )}
@@ -382,7 +384,7 @@ function HospitalDetailPage() {
                       </div>
                     </div>
                     {renderSmallStars(review.rating)}
-                    {currentUser && (review.user_name === (currentUser.username || currentUser.display_name)) && (
+                    {currentUser && review.user === currentUser.id && (
                       <div className="flex space-x-2 ml-2">
                         <button onClick={() => navigate(`/hospitals/${id}/reviews/${review.id}/edit`)} className="text-xs text-blue-500 hover:underline">수정</button>
                         <button onClick={() => handleDeleteReview(review.id)} className="text-xs text-red-500 hover:underline">삭제</button>

@@ -10,6 +10,7 @@ class Notification(models.Model):
         ('comment', '댓글'),
         ('resolved', '해결'),
         ('community', '커뮤니티'),
+        ('like', '좋아요'),
     ]
     
     user = models.ForeignKey(

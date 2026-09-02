@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import { formatPhoneInput, isValidPhone } from '../utils/phone';
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -30,6 +31,11 @@ function RegisterPage() {
 
     if (formData.password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
+    if (formData.phone_number && !isValidPhone(formData.phone_number)) {
+      setError('전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)');
       return;
     }
 
@@ -162,7 +168,8 @@ function RegisterPage() {
                 name="phone_number"
                 type="tel"
                 value={formData.phone_number}
-                onChange={handleChange}
+                onChange={(e) => setFormData({ ...formData, phone_number: formatPhoneInput(e.target.value) })}
+                maxLength={13}
                 className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
                 placeholder="010-1234-5678"
               />

@@ -215,8 +215,9 @@ function HospitalMapPage() {
         places.keywordSearch(keyword, (result, status) => {
           if (status === window.kakao.maps.services.Status.OK) {
             result.forEach(place => {
-              // 중복 제거 (같은 ID는 하나만)
-              if (!allPlaces.find(p => p.kakao_id === place.id)) {
+              // 중복 제거 (같은 ID는 하나만 + 이미 DB에 저장된 곳은 제외)
+              const alreadyInDb = hospitals.some(h => h.kakao_place_id === place.id);
+              if (!alreadyInDb && !allPlaces.find(p => p.kakao_id === place.id)) {
                 const placeData = {
                   id: `kakao_hospital_${place.id}`,
                   kakao_id: place.id,
@@ -261,8 +262,9 @@ function HospitalMapPage() {
           places.keywordSearch(keyword, (result, status) => {
             if (status === window.kakao.maps.services.Status.OK) {
               result.forEach(place => {
-                // 중복 제거
-                if (!allPlaces.find(p => p.kakao_id === place.id)) {
+                // 중복 제거 (같은 ID는 하나만 + 이미 DB에 저장된 곳은 제외)
+                const alreadyInDb = hospitals.some(h => h.kakao_place_id === place.id);
+                if (!alreadyInDb && !allPlaces.find(p => p.kakao_id === place.id)) {
                   const placeData = {
                     id: `kakao_grooming_${place.id}`,
                     kakao_id: place.id,
@@ -661,7 +663,7 @@ function HospitalMapPage() {
       if (type === 'hospital') {
         color = '#EF4444'; // red-500 (빨강)
       } else if (type === 'grooming') {
-        color = '#EC4899'; // pink-500 (핑크)
+        color = '#EAB308'; // yellow-500 (노랑)
       }
       
       // 2. 24시간이면 보라색으로 덮어쓰기

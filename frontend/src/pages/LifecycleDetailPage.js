@@ -289,15 +289,27 @@ function LifecycleDetailPage() {
             </div>
 
             {completionRate === 100 && (
-              <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl text-center">
-                <div className="text-5xl mb-3">🎉</div>
-                <h3 className="text-2xl font-bold text-green-900 mb-2">
-                  축하합니다!
-                </h3>
-                <p className="text-green-700">
-                  모든 체크리스트를 완료했습니다!
-                </p>
-              </div>
+              guide.stage === 'farewell' ? (
+                <div className="mt-6 p-6 bg-gradient-to-r from-slate-50 to-gray-100 border-2 border-slate-300 rounded-xl text-center">
+                  <div className="text-5xl mb-3">🕊️</div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                    수고하셨습니다
+                  </h3>
+                  <p className="text-slate-600">
+                    모든 절차를 마치셨습니다. 함께한 소중한 시간을 기억해주세요.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl text-center">
+                  <div className="text-5xl mb-3">🎉</div>
+                  <h3 className="text-2xl font-bold text-green-900 mb-2">
+                    축하합니다!
+                  </h3>
+                  <p className="text-green-700">
+                    모든 체크리스트를 완료했습니다!
+                  </p>
+                </div>
+              )
             )}
           </div>
         )}

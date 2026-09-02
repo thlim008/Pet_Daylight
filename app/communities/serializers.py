@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Community, CommunityComment, CommunityLike
 from app.accounts.serializers import UserSimpleSerializer
+from app.validators import validate_image_size
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -28,7 +29,7 @@ class CommunitySerializer(serializers.ModelSerializer):
     likes = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
     uploaded_images = serializers.ListField(
-        child=serializers.ImageField(),
+        child=serializers.ImageField(validators=[validate_image_size]),
         write_only=True,
         required=False
     )

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import KakaoMap from '../components/KakaoMap';
+import { formatPhoneInput, isValidPhone } from '../utils/phone';
 
 function MissingPetCreatePage() {
   const navigate = useNavigate();
@@ -201,8 +202,14 @@ function MissingPetCreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!isValidPhone(formData.contact)) {
+      alert('연락처 형식이 올바르지 않습니다. (예: 010-1234-5678)');
+      return;
+    }
+
     setLoading(true);
-    
+
     try {
       const data = new FormData();
       
@@ -480,7 +487,8 @@ function MissingPetCreatePage() {
               type="text"
               name="contact"
               value={formData.contact}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, contact: formatPhoneInput(e.target.value) })}
+              maxLength={13}
               placeholder="010-1234-5678"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               required

@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
+from app.validators import validate_image_size
 
 
 class User(AbstractUser):
@@ -44,12 +46,17 @@ class User(AbstractUser):
         max_length=20,
         null=True,
         blank=True,
+        validators=[RegexValidator(
+            regex=r'^01[016789]-\d{3,4}-\d{4}$',
+            message='전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)'
+        )],
         help_text="연락처"
     )
     profile_image = models.ImageField(
         upload_to='profiles/',
         null=True,
         blank=True,
+        validators=[validate_image_size],
         help_text="프로필 사진 (업로드)"
     )
     

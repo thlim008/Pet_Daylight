@@ -1,18 +1,19 @@
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from rest_framework_simplejwt.tokens import RefreshToken
 import sys
 
 class SocialLoginRedirectMiddleware:
     """소셜 로그인 완료 후 200 응답을 가로채어 JWT와 함께 리다이렉트"""
-    
+
     def __init__(self, get_response):
         self.get_response = get_response
-    
+
     def __call__(self, request):
         response = self.get_response(request)
-        
-        # 🔍 디버깅: 모든 소셜 로그인 관련 경로 로깅
-        if any(keyword in request.path for keyword in ['kakao', 'google', 'naver', 'callback']):
+
+        # 🔍 디버깅 로그: DEBUG 모드에서만 출력 (토큰 등 민감정보 포함이라 운영에선 끔)
+        if settings.DEBUG and any(keyword in request.path for keyword in ['kakao', 'google', 'naver', 'callback']):
             print("=" * 80, file=sys.stderr)
             print(f"🔍 [Middleware] 요청 경로: {request.path}", file=sys.stderr)
             print(f"🔍 [Middleware] 메서드: {request.method}", file=sys.stderr)
@@ -37,24 +38,24 @@ class SocialLoginRedirectMiddleware:
             if not user.email:
                 user.email = f"{user.username}@petdaylight.local"
                 user.save()
-                print(f"📧 [Middleware] 이메일 자동 생성: {user.email}", file=sys.stderr)
-            
+                if settings.DEBUG:
+                    print(f"📧 [Middleware] 이메일 자동 생성: {user.email}", file=sys.stderr)
+
             # JWT 토큰 생성
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
-            
+
             # 프론트엔드 리다이렉트 URL
             redirect_url = f"https://petdaylight.mooo.com/?access={access_token}&refresh={refresh_token}"
-            
-            print("🚀" * 40, file=sys.stderr)
-            print(f"🚀 [Middleware] 소셜 로그인 성공!", file=sys.stderr)
-            print(f"👤 [Middleware] 사용자: {user.username}", file=sys.stderr)
-            print(f"📧 [Middleware] 이메일: {user.email}", file=sys.stderr)
-            print(f"🎟️  [Middleware] Access Token: {access_token[:50]}...", file=sys.stderr)
-            print(f"🎫 [Middleware] Refresh Token: {refresh_token[:50]}...", file=sys.stderr)
-            print(f"📍 [Middleware] 리다이렉트: {redirect_url[:80]}...", file=sys.stderr)
-            print("🚀" * 40, file=sys.stderr)
+
+            if settings.DEBUG:
+                print("🚀" * 40, file=sys.stderr)
+                print(f"🚀 [Middleware] 소셜 로그인 성공!", file=sys.stderr)
+                print(f"👤 [Middleware] 사용자: {user.username}", file=sys.stderr)
+                print(f"📧 [Middleware] 이메일: {user.email}", file=sys.stderr)
+                print(f"📍 [Middleware] 리다이렉트: (토큰 포함, 로그 생략)", file=sys.stderr)
+                print("🚀" * 40, file=sys.stderr)
             
             # HttpResponseRedirect를 반환하면 Django는 302 리다이렉트를 보냅니다
             return HttpResponseRedirect(redirect_url)

@@ -1,7 +1,8 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied
 from .models import Hospital, HospitalVisit, HospitalReview
 from .serializers import (
     HospitalSerializer,
@@ -29,16 +30,20 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 
-class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
-    """병원/미용실 ViewSet (읽기 전용)"""
+class HospitalViewSet(viewsets.ModelViewSet):
+    """병원/미용실 ViewSet (생성/수정/삭제는 관리자만)"""
     queryset = Hospital.objects.all()
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = None
     search_fields = ['name', 'address']
     ordering_fields = ['rating', 'review_count', 'created_at']
     ordering = ['-rating']
-    
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [IsAuthenticatedOrReadOnly()]
+
     def get_serializer_class(self):
         """액션별 Serializer 선택"""
         if self.action == 'list':
@@ -196,7 +201,10 @@ class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
         elif request.method == 'POST':
             if not request.user.is_authenticated:
                 return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
-            
+
+            if HospitalReview.objects.filter(hospital=hospital, user=request.user).exists():
+                return Response({'error': '이미 이 병원에 리뷰를 작성하셨습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
             serializer = HospitalReviewSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save(user=request.user, hospital=hospital)
@@ -214,7 +222,7 @@ class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
         except HospitalReview.DoesNotExist:
             return Response({'error': '리뷰를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
         
-        if review.user != request.user:
+        if review.user != request.user and not request.user.is_staff:
             return Response({'error': '본인의 리뷰만 수정/삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
         
         if request.method == 'PUT':
@@ -263,19 +271,13 @@ class HospitalVisitViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """본인의 방문 기록만 수정 가능"""
         if serializer.instance.user != self.request.user:
-            return Response(
-                {'error': '본인의 방문 기록만 수정할 수 있습니다.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            raise PermissionDenied('본인의 방문 기록만 수정할 수 있습니다.')
         serializer.save()
-    
+
     def perform_destroy(self, instance):
         """본인의 방문 기록만 삭제 가능"""
         if instance.user != self.request.user:
-            return Response(
-                {'error': '본인의 방문 기록만 삭제할 수 있습니다.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            raise PermissionDenied('본인의 방문 기록만 삭제할 수 있습니다.')
         instance.delete()
     
 
@@ -315,21 +317,15 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        """본인의 후기만 수정 가능"""
-        if serializer.instance.user != self.request.user:
-            return Response(
-                {'error': '본인의 후기만 수정할 수 있습니다.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        """본인 또는 관리자만 수정 가능"""
+        if serializer.instance.user != self.request.user and not self.request.user.is_staff:
+            raise PermissionDenied('본인의 후기만 수정할 수 있습니다.')
         serializer.save()
 
     def perform_destroy(self, instance):
-        """본인의 후기만 삭제 가능"""
-        if instance.user != self.request.user:
-            return Response(
-                {'error': '본인의 후기만 삭제할 수 있습니다.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        """본인 또는 관리자만 삭제 가능"""
+        if instance.user != self.request.user and not self.request.user.is_staff:
+            raise PermissionDenied('본인의 후기만 삭제할 수 있습니다.')
         instance.delete()
 
     @action(detail=False, methods=['get'])

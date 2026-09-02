@@ -331,14 +331,14 @@ function PetFormPage() {
               {/* 품종 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  품종
+                  {formData.species === 'other' ? '구체적인 종류' : '품종'}
                 </label>
                 <input
                   type="text"
                   name="breed"
                   value={formData.breed}
                   onChange={handleChange}
-                  placeholder="예: 골든리트리버"
+                  placeholder={formData.species === 'other' ? '예: 도마뱀, 햄스터, 앵무새' : '예: 골든리트리버'}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
               </div>

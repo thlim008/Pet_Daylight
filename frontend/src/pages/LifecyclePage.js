@@ -10,12 +10,30 @@ function LifecyclePage() {
   const [loading, setLoading] = useState(true);
   const [selectedSpecies, setSelectedSpecies] = useState(searchParams.get('species') || 'dog');
   const [selectedStage, setSelectedStage] = useState('all');
+  const [customSpeciesList, setCustomSpeciesList] = useState([]);
 
-  const speciesTabs = [
+  const baseSpeciesTabs = [
     { value: 'dog', label: '강아지', emoji: '🐕', color: 'amber' },
     { value: 'cat', label: '고양이', emoji: '🐱', color: 'purple' },
     { value: 'other', label: '기타', emoji: '🐾', color: 'gray' },
   ];
+
+  // 관리자가 등록한 '기타' 하위 종류(도마뱀, 앵무새 등)를 별도 탭으로 추가
+  const speciesTabs = [
+    ...baseSpeciesTabs,
+    ...customSpeciesList.map((item) => ({
+      value: `other:${item.name}`,
+      label: item.name,
+      emoji: item.emoji || '🐾',
+      color: 'gray',
+    })),
+  ];
+
+  useEffect(() => {
+    API.get('/lifecycles/guides/custom_species_list/')
+      .then((res) => setCustomSpeciesList(res.data || []))
+      .catch((err) => console.error('종류 목록 로드 실패:', err));
+  }, []);
 
   const stages = [
     { value: 'all', label: '전체', emoji: '📚', color: 'gray' },
@@ -33,10 +51,15 @@ function LifecyclePage() {
   const loadGuides = async () => {
     try {
       setLoading(true);
-      const params = {
-        species: selectedSpecies,
-      };
-      
+      // 'other:앵무새' 형식이면 species=other + custom_species_name=앵무새로 분리
+      const [species, customName] = selectedSpecies.includes(':')
+        ? selectedSpecies.split(':')
+        : [selectedSpecies, null];
+      const params = { species };
+      if (customName) {
+        params.custom_species_name = customName;
+      }
+
       if (selectedStage !== 'all') {
         params.stage = selectedStage;
       }

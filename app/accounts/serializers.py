@@ -3,6 +3,8 @@ accounts/serializers.py - 완성본
 기존 파일을 이것으로 완전히 교체하세요!
 """
 
+import logging
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -12,6 +14,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 # ==========================================
@@ -45,12 +48,14 @@ class UserSerializer(serializers.ModelSerializer):
             'latitude', 'longitude',
             'notification_enabled', 'notification_distance',
             'is_social_account', 'social_providers', 'can_change_password',  # 추가
+            'is_staff', 'is_superuser',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'username', 'created_at', 'updated_at', 
+            'id', 'username', 'created_at', 'updated_at',
             'display_name', 'display_image',
-            'is_social_account', 'social_providers', 'can_change_password'  # 추가
+            'is_social_account', 'social_providers', 'can_change_password',  # 추가
+            'is_staff', 'is_superuser'
         ]
     
     def get_is_social_account(self, obj):
@@ -84,6 +89,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError("비밀번호가 일치하지 않습니다.")
         return data
+
+    def validate_email(self, value):
+        """이메일 중복 가입 방지 (email에 unique 제약이 없어서 직접 체크)"""
+        if value and User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
+        return value
     
     def create(self, validated_data):
         """사용자 생성"""
@@ -99,14 +110,24 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """사용자 정보 수정 Serializer"""
-    
+    is_staff = serializers.BooleanField(required=False)
+
     class Meta:
         model = User
         fields = [
             'nickname', 'email', 'phone_number', 'profile_image',
-            'latitude', 'longitude', 
-            'notification_enabled', 'notification_distance'
+            'latitude', 'longitude',
+            'notification_enabled', 'notification_distance',
+            'is_staff',
         ]
+
+    def update(self, instance, validated_data):
+        """is_staff는 요청자가 이미 관리자일 때만 반영 (일반 유저의 자기 승격 방지)"""
+        request = self.context.get('request')
+        if 'is_staff' in validated_data:
+            if not (request and request.user.is_staff):
+                validated_data.pop('is_staff')
+        return super().update(instance, validated_data)
 
 
 # ==========================================
@@ -114,47 +135,31 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 # ==========================================
 
 class PasswordResetRequestSerializer(serializers.Serializer):
-    """비밀번호 재설정 요청 (이메일 입력)"""
+    """비밀번호 재설정 요청 (이메일 입력)
+
+    보안: 이메일 존재 여부/소셜 로그인 여부를 응답으로 노출하면
+    계정 열거(user enumeration) 공격에 악용될 수 있어서,
+    입력값 형식만 검증하고 실제 계정 존재/발송 여부는 항상 동일한 응답을 준다.
+    """
     email = serializers.EmailField()
-    
-    def validate_email(self, value):
-        """이메일이 존재하는지 확인"""
-        user = User.objects.filter(email=value).first()
-        if not user:
-            raise serializers.ValidationError("해당 이메일로 가입된 계정이 없습니다.")
-        
-        
-        # 🔥 소셜 로그인 계정 체크
-        if not user.has_usable_password():
-            # 소셜 로그인 제공자 확인
-            social_accounts = user.socialaccount_set.all()
-            if social_accounts.exists():
-                providers = ', '.join([acc.provider.upper() for acc in social_accounts])
-                raise serializers.ValidationError(
-                    f"이 계정은 {providers} 소셜 로그인으로 가입되었습니다. "
-                    f"비밀번호 재설정이 불가능합니다. {providers} 로그인을 이용해주세요."
-                )
-            else:
-                raise serializers.ValidationError(
-                    "이 계정은 소셜 로그인으로 가입되었습니다. "
-                    "비밀번호 재설정이 불가능합니다."
-                )
-        
-        return value
-    
+
     def save(self):
-        """비밀번호 재설정 이메일 발송"""
+        """조건에 맞는 계정이 있을 때만 실제로 이메일 발송 (결과는 항상 동일하게 응답)"""
         email = self.validated_data['email']
         user = User.objects.filter(email=email).first()
-        
+
+        if not user or not user.has_usable_password():
+            # 계정이 없거나 소셜 로그인 전용 계정이면 조용히 아무것도 하지 않음
+            return True
+
         # 토큰 생성
         token_generator = PasswordResetTokenGenerator()
         token = token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        
+
         # 재설정 링크 생성
         reset_url = f"https://petdaylight.mooo.com/password-reset/confirm/{uid}/{token}/"
-        
+
         # 이메일 발송
         subject = '[Pet Daylight] 비밀번호 재설정 요청'
         message = f"""
@@ -171,7 +176,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 감사합니다.
 Pet Daylight 팀
         """
-        
+
         try:
             send_mail(
                 subject=subject,
@@ -180,9 +185,10 @@ Pet Daylight 팀
                 recipient_list=[email],
                 fail_silently=False,
             )
-            return True
         except Exception as e:
-            raise serializers.ValidationError(f"이메일 발송 실패: {str(e)}")
+            # 발송 실패 사유는 외부에 노출하지 않고 서버 로그로만 남긴다
+            logger.error(f"비밀번호 재설정 이메일 발송 실패 (user={user.id}): {e}")
+        return True
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

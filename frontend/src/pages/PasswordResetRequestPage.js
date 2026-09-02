@@ -160,39 +160,6 @@ function PasswordResetRequestPage() {
                   <p className="text-sm text-red-800 font-medium leading-relaxed whitespace-pre-line">
                     {error}
                   </p>
-                  
-                  {/* 소셜 로그인 안내 */}
-                  {error.includes('소셜 로그인') && (
-                    <div className="mt-4 pt-4 border-t border-red-200">
-                      <p className="text-xs text-red-700 mb-3">소셜 로그인으로 가입하신 경우:</p>
-                      <div className="space-y-2">
-                        {error.includes('KAKAO') && (
-                          <button
-                            onClick={() => window.location.href = 'https://petdaylight.mooo.com/accounts/kakao/login/'}
-                            className="w-full py-2.5 bg-[#FEE500] text-[#000000] rounded-lg font-medium hover:bg-[#FDD835] transition-all text-sm"
-                          >
-                            카카오 로그인하기
-                          </button>
-                        )}
-                        {error.includes('NAVER') && (
-                          <button
-                            onClick={() => window.location.href = 'https://petdaylight.mooo.com/accounts/naver/login/'}
-                            className="w-full py-2.5 bg-[#03C75A] text-white rounded-lg font-medium hover:bg-[#02B350] transition-all text-sm"
-                          >
-                            네이버 로그인하기
-                          </button>
-                        )}
-                        {error.includes('GOOGLE') && (
-                          <button
-                            onClick={() => window.location.href = 'https://petdaylight.mooo.com/accounts/google/login/'}
-                            className="w-full py-2.5 bg-white border-2 border-gray-200 text-gray-900 rounded-lg font-medium hover:bg-gray-50 transition-all text-sm"
-                          >
-                            Google 로그인하기
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <button
                   type="button"

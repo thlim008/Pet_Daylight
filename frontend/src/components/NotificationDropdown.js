@@ -80,7 +80,9 @@ function NotificationDropdown() {
       }
 
       // 관련 페이지로 이동
-      if (notification.missing_pet) {
+      if (notification.link) {
+        navigate(notification.link);
+      } else if (notification.missing_pet) {
         navigate(`/missing-pets/${notification.missing_pet}`);
       } else if (notification.community) {
         navigate(`/communities/${notification.community}`);
@@ -100,6 +102,20 @@ function NotificationDropdown() {
     } catch (err) {
       console.error('❌ 모두 읽음 처리 실패:', err);
       alert('알림 읽음 처리에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteOne = async (e, notification) => {
+    e.stopPropagation(); // 알림 클릭(이동/읽음처리)로 안 번지게
+    try {
+      await API.delete(`/notifications/${notification.id}/`);
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+      if (!notification.is_read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      console.error('❌ 알림 삭제 실패:', err);
+      alert('알림 삭제에 실패했습니다.');
     }
   };
 
@@ -218,15 +234,26 @@ function NotificationDropdown() {
                         }`}>
                           {notification.title}
                         </p>
-                        {!notification.is_read && (
-                          <span className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></span>
-                        )}
+                        <div className="flex items-center flex-shrink-0 ml-2">
+                          {!notification.is_read && (
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          )}
+                          <button
+                            onClick={(e) => handleDeleteOne(e, notification)}
+                            className="text-gray-300 hover:text-red-500 transition-colors p-0.5"
+                            title="삭제"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                      
+
                       <p className="text-xs text-gray-600 line-clamp-2 mb-2">
                         {notification.message}
                       </p>
-                      
+
                       <p className="text-xs text-gray-400">
                         {getTimeAgo(notification.created_at)}
                       </p>

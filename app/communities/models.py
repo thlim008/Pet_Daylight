@@ -87,7 +87,7 @@ class CommunityLike(models.Model):
         help_text="사용자"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'community_likes'
         verbose_name = '커뮤니티 좋아요'

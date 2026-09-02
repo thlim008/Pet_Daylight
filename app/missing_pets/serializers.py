@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import MissingPet, Comment
 from app.accounts.serializers import UserSimpleSerializer
+from app.validators import validate_image_size
 from django.utils import timezone
 from datetime import datetime
 from django.core.files.storage import default_storage
@@ -86,7 +87,7 @@ class MissingPetDetailSerializer(serializers.ModelSerializer):
 class MissingPetCreateSerializer(serializers.ModelSerializer):
     """제보 생성 Serializer"""
     uploaded_images = serializers.ListField(
-        child=serializers.ImageField(),
+        child=serializers.ImageField(validators=[validate_image_size]),
         write_only=True,
         required=False
     )
@@ -147,7 +148,7 @@ class MissingPetCreateSerializer(serializers.ModelSerializer):
 class MissingPetUpdateSerializer(serializers.ModelSerializer):
     """제보 수정 Serializer"""
     uploaded_images = serializers.ListField(
-        child=serializers.ImageField(),
+        child=serializers.ImageField(validators=[validate_image_size]),
         write_only=True,
         required=False
     )

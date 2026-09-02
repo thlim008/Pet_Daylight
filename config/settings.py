@@ -112,7 +112,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'petdaylight_db'),
         'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'your_password_here'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
@@ -153,7 +153,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/django-static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
@@ -184,6 +184,16 @@ REST_FRAMEWORK = {
 
      # Swagger 스키마 설정
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+    # 남용 방지 (무차별 대입 공격 / 이메일 스팸 방지)
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/min',
+        'password_reset': '3/hour',
+        'register': '10/hour',
+    },
 }
 
 
@@ -344,12 +354,25 @@ LOGGING = {
 
 
 # ==========================================
-# 이메일 설정 (개발 환경 - 콘솔 출력)
+# 이메일 설정
 # ==========================================
 
-# 🔥 개발 환경: 실제 이메일 발송 대신 콘솔(터미널)에 출력
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'Pet Daylight <noreply@petdaylight.com>'
+# 우선순위: SendGrid API(HTTPS, 포트 차단 무관) > SMTP > 콘솔(터미널) 출력
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
+
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = 'config.email_backend.SendGridAPIBackend'
+elif os.environ.get('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Pet Daylight <noreply@petdaylight.com>')
 
 # 비밀번호 재설정 링크 유효 시간 (초 단위, 기본 24시간)
 PASSWORD_RESET_TIMEOUT = 86400  # 24시간
@@ -405,3 +428,5 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SCHEMA_PATH_PREFIX_TRIM': True,
 }
+
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')

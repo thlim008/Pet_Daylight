@@ -2,10 +2,59 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from django.db.models import Q
+from django.db.models import Q, F
 from .models import MissingPet, Comment
 from .serializers import MissingPetListSerializer, MissingPetDetailSerializer, MissingPetCreateSerializer, MissingPetUpdateSerializer, CommentSerializer
 from app.notifications.models import Notification
+from app.accounts.models import User
+import math
+
+
+CATEGORY_LABELS = {'missing': '실종', 'found': '발견', 'rescue': '구조'}
+
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """두 지점 간 거리 계산 (Haversine formula) - 미터 단위"""
+    R = 6371000
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = (math.sin(delta_lat / 2) ** 2 +
+         math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def notify_nearby_users(missing_pet):
+    """새 제보 발생 시 반경 내 알림 설정된 사용자들에게 알림 생성"""
+    if missing_pet.latitude is None or missing_pet.longitude is None:
+        return
+
+    candidates = User.objects.filter(
+        notification_enabled=True,
+        latitude__isnull=False,
+        longitude__isnull=False,
+    ).exclude(id=missing_pet.user_id)
+
+    label = CATEGORY_LABELS.get(missing_pet.category, '제보')
+    notifications = []
+    for user in candidates:
+        distance = calculate_distance(
+            float(user.latitude), float(user.longitude),
+            float(missing_pet.latitude), float(missing_pet.longitude)
+        )
+        if distance <= user.notification_distance:
+            notifications.append(Notification(
+                user=user,
+                type='new_report',
+                title=f'주변 {label} 제보',
+                message=f'내 주변에 {label} 반려동물 제보가 등록되었습니다: {missing_pet.name}',
+                missing_pet=missing_pet,
+                link=f'/missing-pets/{missing_pet.id}'
+            ))
+
+    if notifications:
+        Notification.objects.bulk_create(notifications)
 
 
 class MissingPetViewSet(viewsets.ModelViewSet):
@@ -22,6 +71,14 @@ class MissingPetViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return MissingPetDetailSerializer
         return MissingPetListSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        """제보 상세 조회 시 조회수 증가"""
+        instance = self.get_object()
+        MissingPet.objects.filter(pk=instance.pk).update(views=F('views') + 1)
+        instance.refresh_from_db(fields=['views'])
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def get_queryset(self):
         """필터링 + 검색"""
@@ -63,18 +120,37 @@ class MissingPetViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-created_at')
 
     def perform_create(self, serializer):
-        """실종 제보 생성 시 사용자 자동 설정"""
-        serializer.save(user=self.request.user)
+        """실종 제보 생성 시 사용자 자동 설정 + 주변 사용자 알림"""
+        missing_pet = serializer.save(user=self.request.user)
+        notify_nearby_users(missing_pet)
+
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
         """제보 상태 업데이트"""
         missing_pet = self.get_object()
-        
-        # 작성자만 수정 가능
-        if missing_pet.user != request.user:
+
+        # 작성자 또는 관리자만 수정 가능
+        if missing_pet.user != request.user and not request.user.is_staff:
             return Response(
-                {'error': '권한이 없습니다.'}, 
+                {'error': '권한이 없습니다.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -86,9 +162,32 @@ class MissingPetViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        was_active = missing_pet.status == 'active'
         missing_pet.status = new_status
         missing_pet.save()
-        
+
+        # 진행중 -> 해결로 바뀌었을 때, 댓글 남긴 사람들에게 알림 (작성자 본인 제외)
+        if was_active and new_status == 'resolved':
+            notify_users = (
+                Comment.objects.filter(missing_pet=missing_pet)
+                .exclude(user=missing_pet.user)
+                .values_list('user', flat=True)
+                .distinct()
+            )
+            notifications = [
+                Notification(
+                    user_id=user_id,
+                    type='resolved',
+                    title='제보가 해결되었습니다',
+                    message=f'댓글을 남기셨던 "{missing_pet.name}" 제보가 해결되었습니다.',
+                    missing_pet=missing_pet,
+                    link=f'/missing-pets/{missing_pet.id}'
+                )
+                for user_id in notify_users
+            ]
+            if notifications:
+                Notification.objects.bulk_create(notifications)
+
         serializer = self.get_serializer(missing_pet)
         return Response(serializer.data)
 
@@ -169,6 +268,24 @@ class CommentViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by('-created_at')
 
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not (request.user.is_staff or obj.user == request.user):
+            return Response({'error': '작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         """댓글 작성 시 사용자 자동 설정 + 알림 생성"""
         comment = serializer.save(user=self.request.user)
@@ -179,7 +296,8 @@ class CommentViewSet(viewsets.ModelViewSet):
                 user=comment.missing_pet.user,
                 type='comment',
                 title='새 댓글',
-                message=f'{self.request.user.username}님이 회원님의 제보에 댓글을 남겼습니다.',
+                message=f'{self.request.user.display_name}님이 회원님의 제보에 댓글을 남겼습니다.',
+                missing_pet=comment.missing_pet,
                 link=f'/missing-pets/{comment.missing_pet.id}'
             )
     

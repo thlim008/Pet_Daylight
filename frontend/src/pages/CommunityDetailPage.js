@@ -327,7 +327,7 @@ function CommunityDetailPage() {
                       {post.user.profile_image ? (
                         <img
                           src={post.user.profile_image}
-                          alt={post.user.username}
+                          alt={post.user.nickname || post.user.username}
                           className="w-10 h-10 rounded-full"
                         />
                       ) : (
@@ -336,7 +336,7 @@ function CommunityDetailPage() {
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-gray-900">{post.user.username}</p>
+                        <p className="font-medium text-gray-900">{post.user.nickname || post.user.username}</p>
                         <p className="text-sm text-gray-500">
                           {new Date(post.created_at).toLocaleDateString('ko-KR')}
                         </p>
@@ -385,7 +385,7 @@ function CommunityDetailPage() {
                           {comment.user.profile_image ? (
                             <img
                               src={comment.user.profile_image}
-                              alt={comment.user.username}
+                              alt={comment.user.nickname || comment.user.username}
                               className="w-8 h-8 rounded-full flex-shrink-0"
                             />
                           ) : (
@@ -396,7 +396,7 @@ function CommunityDetailPage() {
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-medium text-gray-900">
-                                {comment.user.username}
+                                {comment.user.nickname || comment.user.username}
                               </span>
                               <div className="flex items-center space-x-2">
                                 <span className="text-xs text-gray-500">
