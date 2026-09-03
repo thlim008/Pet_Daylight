@@ -34,6 +34,7 @@ const emptyHospital = {
   website: '',
   description: '',
   is_24_hours: false,
+  managers: [],
 };
 
 const STAGE_OPTIONS = [
@@ -145,6 +146,8 @@ function AdminPage() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isFullAdmin, setIsFullAdmin] = useState(false);
+  const [hospitalManagers, setHospitalManagers] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -163,7 +166,7 @@ function AdminPage() {
   // 회원 수정 폼 상태
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingUserIsSocial, setEditingUserIsSocial] = useState(false);
-  const [userForm, setUserForm] = useState({ nickname: '', email: '', phone_number: '', is_staff: false });
+  const [userForm, setUserForm] = useState({ nickname: '', email: '', phone_number: '', is_staff: false, is_hospital_manager: false });
   const [newPassword, setNewPassword] = useState('');
 
   // 생애주기 가이드 추가/수정 폼 상태
@@ -172,17 +175,22 @@ function AdminPage() {
   const [guideForm, setGuideForm] = useState(emptyGuide);
 
   const currentTab = TABS.find((t) => t.key === activeTab);
+  const visibleTabs = isFullAdmin ? TABS : TABS.filter((t) => t.key === 'hospitals' || t.key === 'hospital-reviews');
 
   useEffect(() => {
     const checkAdmin = async () => {
       try {
         const res = await authAPI.getMe();
-        if (!res.data.is_staff) {
+        if (!res.data.is_staff && !res.data.is_hospital_manager) {
           alert('관리자만 접근할 수 있습니다.');
           navigate('/');
           return;
         }
         setIsAdmin(true);
+        setIsFullAdmin(!!res.data.is_staff);
+        if (!res.data.is_staff && res.data.is_hospital_manager) {
+          setActiveTab('hospitals');
+        }
       } catch (err) {
         navigate('/login');
       } finally {
@@ -242,6 +250,7 @@ function AdminPage() {
       email: user.email || '',
       phone_number: user.phone_number || '',
       is_staff: user.is_staff,
+      is_hospital_manager: !!user.is_hospital_manager,
     });
     setNewPassword('');
   };
@@ -251,7 +260,7 @@ function AdminPage() {
     setSaving(true);
     try {
       // 빈 칸으로 둔 필드는 변경하지 않고 기존 값 유지 (비밀번호와 동일한 방식)
-      const payload = { is_staff: userForm.is_staff };
+      const payload = { is_staff: userForm.is_staff, is_hospital_manager: userForm.is_hospital_manager };
       if (userForm.nickname) payload.nickname = userForm.nickname;
       if (userForm.email) payload.email = userForm.email;
       if (userForm.phone_number) payload.phone_number = userForm.phone_number;
@@ -277,11 +286,23 @@ function AdminPage() {
   };
 
   // ===== 병원/미용실 추가·수정 =====
+  const loadHospitalManagers = useCallback(async () => {
+    if (!isFullAdmin) return;
+    try {
+      const res = await API.get('/accounts/');
+      const data = res.data.results || res.data;
+      setHospitalManagers((Array.isArray(data) ? data : []).filter((u) => u.is_hospital_manager));
+    } catch (err) {
+      console.error('병원 관리자 목록 로드 실패:', err);
+    }
+  }, [isFullAdmin]);
+
   const startAddHospital = () => {
     closeAllForms();
     setHospitalForm(emptyHospital);
     setOpeningHours(emptyOpeningHours());
     setShowHospitalForm(true);
+    loadHospitalManagers();
   };
 
   const startEditHospital = (hospital) => {
@@ -298,9 +319,11 @@ function AdminPage() {
       website: hospital.website || '',
       description: hospital.description || '',
       is_24_hours: hospital.is_24_hours,
+      managers: hospital.managers || [],
     });
     setOpeningHours(parseOpeningHoursToState(hospital.opening_hours));
     setShowHospitalForm(true);
+    loadHospitalManagers();
   };
 
   const handleSaveHospital = async (e) => {
@@ -430,7 +453,8 @@ function AdminPage() {
               )}
             </td>
             <td className="px-4 py-3 text-sm whitespace-nowrap">
-              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">관리자</span>}
+              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap mr-1">관리자</span>}
+              {item.is_hospital_manager && <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium whitespace-nowrap">병원 관리자</span>}
             </td>
           </>
         );
@@ -476,6 +500,11 @@ function AdminPage() {
             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.type === 'hospital' ? '동물병원' : '미용실'}</td>
             <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-xs">{item.address}</td>
             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">⭐ {item.rating || 0}</td>
+            {isFullAdmin && (
+              <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                {item.manager_names && item.manager_names.length > 0 ? item.manager_names.join(', ') : '-'}
+              </td>
+            )}
           </>
         );
       case 'hospital-reviews':
@@ -509,7 +538,7 @@ function AdminPage() {
     'missing-pet-comments': ['ID', '내용', '작성자', '제보'],
     communities: ['ID', '제목', '작성자', '카테고리', '조회수'],
     'community-comments': ['ID', '내용', '작성자', '게시글'],
-    hospitals: ['ID', '이름', '유형', '주소', '평점'],
+    hospitals: isFullAdmin ? ['ID', '이름', '유형', '주소', '평점', '담당자'] : ['ID', '이름', '유형', '주소', '평점'],
     'hospital-reviews': ['ID', '병원', '내용', '작성자', '평점'],
     guides: ['ID', '제목', '종류', '단계', '순서'],
   };
@@ -527,7 +556,7 @@ function AdminPage() {
       case 'community-comments':
         return [item.content, item.user?.nickname, item.user?.username];
       case 'hospitals':
-        return [item.name, item.address];
+        return [item.name, item.address, ...(item.manager_names || [])];
       case 'hospital-reviews':
         return [item.hospital_name, item.content, item.user_name, item.user?.nickname];
       case 'guides':
@@ -581,7 +610,7 @@ function AdminPage() {
       <main className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-6 border-b border-gray-200">
           <div className="flex gap-2 overflow-x-auto">
-            {TABS.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => { setActiveTab(tab.key); closeAllForms(); setSearchQuery(''); setFilterValues({}); }}
@@ -691,6 +720,15 @@ function AdminPage() {
                 onChange={(e) => setUserForm({ ...userForm, is_staff: e.target.checked })}
               />
               <label htmlFor="isStaff" className="text-sm text-gray-700">관리자 권한 부여</label>
+            </div>
+            <div className="sm:col-span-2 flex items-center gap-2">
+              <input
+                id="isHospitalManager"
+                type="checkbox"
+                checked={userForm.is_hospital_manager}
+                onChange={(e) => setUserForm({ ...userForm, is_hospital_manager: e.target.checked })}
+              />
+              <label htmlFor="isHospitalManager" className="text-sm text-gray-700">병원 관리자 권한 부여 (담당 병원/미용실만 관리)</label>
             </div>
             <div className="sm:col-span-2 flex justify-end gap-2">
               <button type="button" onClick={closeAllForms} className="px-6 py-2 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50">취소</button>
@@ -849,6 +887,33 @@ function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {isFullAdmin && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-2">담당 병원 관리자</label>
+                {hospitalManagers.length === 0 ? (
+                  <p className="text-xs text-gray-400">병원 관리자 권한을 가진 회원이 없습니다. (회원 탭에서 먼저 지정하세요)</p>
+                ) : (
+                  <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {hospitalManagers.map((m) => (
+                      <label key={m.id} className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={hospitalForm.managers.includes(m.id)}
+                          onChange={(e) => {
+                            const managers = e.target.checked
+                              ? [...hospitalForm.managers, m.id]
+                              : hospitalForm.managers.filter((id) => id !== m.id);
+                            setHospitalForm({ ...hospitalForm, managers });
+                          }}
+                        />
+                        {m.nickname || m.username}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

@@ -28,6 +28,12 @@ class Hospital(models.Model):
         max_length=100,
         help_text="이름"
     )
+    managers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='managed_hospitals',
+        blank=True,
+        help_text="이 병원/미용실을 담당하는 병원 관리자 목록"
+    )
 
     # 위치 정보
     latitude = models.DecimalField(

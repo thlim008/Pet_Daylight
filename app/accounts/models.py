@@ -68,6 +68,12 @@ class User(AbstractUser):
         help_text="소셜 로그인 프로필 이미지 URL"
     )
     
+    # 병원 관리자 권한 (담당하는 병원/미용실만 관리 가능한 제한된 관리자)
+    is_hospital_manager = models.BooleanField(
+        default=False,
+        help_text="병원 관리자 여부 (담당 병원/미용실만 관리 가능)"
+    )
+
     # 추가 정보
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -5,6 +5,7 @@ from .models import Hospital, HospitalVisit, HospitalReview
 class HospitalListSerializer(serializers.ModelSerializer):
     """병원/미용실 목록용 Serializer (간단한 정보)"""
     is_open_now = serializers.SerializerMethodField()
+    manager_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Hospital
@@ -23,16 +24,22 @@ class HospitalListSerializer(serializers.ModelSerializer):
             'is_open_now',
             'price_range',
             'kakao_place_id',
+            'managers',
+            'manager_names',
         ]
         read_only_fields = ['rating', 'review_count']
 
     def get_is_open_now(self, obj):
         return obj.is_open_now()
 
+    def get_manager_names(self, obj):
+        return [u.nickname or u.username for u in obj.managers.all()]
+
 
 class HospitalSerializer(serializers.ModelSerializer):
     """병원/미용실 상세 Serializer"""
     is_open_now = serializers.SerializerMethodField()
+    manager_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Hospital
@@ -41,6 +48,9 @@ class HospitalSerializer(serializers.ModelSerializer):
 
     def get_is_open_now(self, obj):
         return obj.is_open_now()
+
+    def get_manager_names(self, obj):
+        return [u.nickname or u.username for u in obj.managers.all()]
 
 
 class HospitalVisitSerializer(serializers.ModelSerializer):

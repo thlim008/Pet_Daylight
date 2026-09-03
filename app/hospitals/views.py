@@ -1,9 +1,28 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser, BasePermission, SAFE_METHODS
 from rest_framework.exceptions import PermissionDenied
 from .models import Hospital, HospitalVisit, HospitalReview
+
+
+class IsAdminOrHospitalManager(BasePermission):
+    """전체 관리자(is_staff)는 모든 병원을, 병원 관리자(is_hospital_manager)는
+    본인이 담당하는 병원만 수정/삭제할 수 있도록 하는 권한 클래스"""
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        return bool(user.is_staff or user.is_hospital_manager)
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.is_staff:
+            return True
+        if request.method in SAFE_METHODS:
+            return True
+        return obj.managers.filter(pk=user.pk).exists()
 from .serializers import (
     HospitalSerializer,
     HospitalListSerializer,
@@ -41,7 +60,7 @@ class HospitalViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]
+            return [IsAdminOrHospitalManager()]
         return [IsAuthenticatedOrReadOnly()]
 
     def get_serializer_class(self):
@@ -53,7 +72,20 @@ class HospitalViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """필터링된 queryset 반환"""
         queryset = Hospital.objects.all()
-        
+
+        # 병원 관리자는 관리자 페이지 목록 조회(위치 검색 파라미터 없는 list)에서
+        # 본인이 담당하는 병원/미용실만 보이도록 제한 (지도/목록 공개 검색은 영향 없음)
+        user = self.request.user
+        has_geo_params = self.request.query_params.get('latitude') and self.request.query_params.get('longitude')
+        if (
+            self.action == 'list'
+            and not has_geo_params
+            and user.is_authenticated
+            and user.is_hospital_manager
+            and not user.is_staff
+        ):
+            queryset = queryset.filter(managers=user)
+
         # 타입 필터 (병원/미용실)
         hospital_type = self.request.query_params.get('type', None)
         if hospital_type:
@@ -105,9 +137,17 @@ class HospitalViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(id__in=nearby_hospitals)
             except (ValueError, TypeError) as e:
                 print(f"⚠️ 거리 필터 오류: {e}")
-        
+
         return queryset
-    
+
+    def perform_create(self, serializer):
+        """병원 관리자가 새로 등록하면 자동으로 본인을 담당자로 지정
+        (그렇지 않으면 목록 스코프 필터 때문에 방금 만든 병원이 바로 안 보이게 됨)"""
+        hospital = serializer.save()
+        user = self.request.user
+        if user.is_hospital_manager and not user.is_staff:
+            hospital.managers.add(user)
+
     @action(detail=False, methods=['post'], url_path='create-from-kakao')
     def create_from_kakao(self, request):
         """
@@ -300,6 +340,11 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user=self.request.user)
             return queryset.order_by('-created_at')
 
+        # 병원 관리자는 본인이 담당하는 병원의 리뷰만 조회 가능
+        user = self.request.user
+        if user.is_authenticated and user.is_hospital_manager and not user.is_staff:
+            queryset = queryset.filter(hospital__managers=user)
+
         # 병원 필터
         hospital_id = self.request.query_params.get('hospital', None)
         if hospital_id:
@@ -323,8 +368,10 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
-        """본인 또는 관리자만 삭제 가능"""
-        if instance.user != self.request.user and not self.request.user.is_staff:
+        """본인, 전체 관리자, 또는 해당 병원 담당 관리자만 삭제 가능"""
+        user = self.request.user
+        is_hospital_manager_of_this = user.is_hospital_manager and instance.hospital.managers.filter(pk=user.pk).exists()
+        if instance.user != user and not user.is_staff and not is_hospital_manager_of_this:
             raise PermissionDenied('본인의 후기만 삭제할 수 있습니다.')
         instance.delete()
 
