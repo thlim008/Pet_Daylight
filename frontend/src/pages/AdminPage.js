@@ -576,7 +576,7 @@ function AdminPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6 border-b border-gray-200 flex-wrap gap-2">
+        <div className="mb-6 border-b border-gray-200">
           <div className="flex gap-2 overflow-x-auto">
             {TABS.map((tab) => (
               <button
@@ -592,10 +592,34 @@ function AdminPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="검색어를 입력하세요"
+              className="w-full sm:w-80 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            />
+            {activeFilters.map((f) => (
+              <select
+                key={f.key}
+                value={filterValues[f.key] || ''}
+                onChange={(e) => { setFilterValues({ ...filterValues, [f.key]: e.target.value }); setCurrentPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              >
+                {f.options.map((o) => (
+                  <option key={o.value} value={o.value}>{f.label}: {o.label}</option>
+                ))}
+              </select>
+            ))}
+          </div>
           {activeTab === 'hospitals' && (
             <button
               onClick={() => (showHospitalForm ? closeAllForms() : startAddHospital())}
-              className="mb-2 px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all whitespace-nowrap"
+              className="px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all whitespace-nowrap"
             >
               {showHospitalForm ? '닫기' : '+ 병원/미용실 추가'}
             </button>
@@ -603,33 +627,11 @@ function AdminPage() {
           {activeTab === 'guides' && (
             <button
               onClick={() => (showGuideForm ? closeAllForms() : startAddGuide())}
-              className="mb-2 px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all whitespace-nowrap"
+              className="px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all whitespace-nowrap"
             >
               {showGuideForm ? '닫기' : '+ 가이드 추가'}
             </button>
           )}
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            placeholder="검색어를 입력하세요"
-            className="w-full sm:w-80 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-          />
-          {activeFilters.map((f) => (
-            <select
-              key={f.key}
-              value={filterValues[f.key] || ''}
-              onChange={(e) => { setFilterValues({ ...filterValues, [f.key]: e.target.value }); setCurrentPage(1); }}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            >
-              {f.options.map((o) => (
-                <option key={o.value} value={o.value}>{f.label}: {o.label}</option>
-              ))}
-            </select>
-          ))}
         </div>
 
         {/* 회원 수정 폼 */}
