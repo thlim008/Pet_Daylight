@@ -22,6 +22,8 @@ class IsAdminOrHospitalManager(BasePermission):
             return True
         if request.method in SAFE_METHODS:
             return True
+        if user.hospital_manager_scope != 'both' and obj.type != user.hospital_manager_scope:
+            return False
         return obj.managers.filter(pk=user.pk).exists()
 from .serializers import (
     HospitalSerializer,
@@ -85,6 +87,8 @@ class HospitalViewSet(viewsets.ModelViewSet):
             and not user.is_staff
         ):
             queryset = queryset.filter(managers=user)
+            if user.hospital_manager_scope != 'both':
+                queryset = queryset.filter(type=user.hospital_manager_scope)
 
         # 타입 필터 (병원/미용실)
         hospital_type = self.request.query_params.get('type', None)
@@ -143,8 +147,12 @@ class HospitalViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """병원 관리자가 새로 등록하면 자동으로 본인을 담당자로 지정
         (그렇지 않으면 목록 스코프 필터 때문에 방금 만든 병원이 바로 안 보이게 됨)"""
-        hospital = serializer.save()
         user = self.request.user
+        if user.is_hospital_manager and not user.is_staff:
+            requested_type = serializer.validated_data.get('type')
+            if user.hospital_manager_scope != 'both' and requested_type != user.hospital_manager_scope:
+                raise PermissionDenied(f'담당 범위({user.get_hospital_manager_scope_display()})에 해당하는 유형만 등록할 수 있습니다.')
+        hospital = serializer.save()
         if user.is_hospital_manager and not user.is_staff:
             hospital.managers.add(user)
 
@@ -344,6 +352,8 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated and user.is_hospital_manager and not user.is_staff:
             queryset = queryset.filter(hospital__managers=user)
+            if user.hospital_manager_scope != 'both':
+                queryset = queryset.filter(hospital__type=user.hospital_manager_scope)
 
         # 병원 필터
         hospital_id = self.request.query_params.get('hospital', None)
@@ -375,7 +385,10 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         """본인, 전체 관리자, 또는 해당 병원 담당 관리자만 삭제 가능"""
         user = self.request.user
-        is_hospital_manager_of_this = user.is_hospital_manager and instance.hospital.managers.filter(pk=user.pk).exists()
+        scope_ok = user.hospital_manager_scope == 'both' or instance.hospital.type == user.hospital_manager_scope
+        is_hospital_manager_of_this = (
+            user.is_hospital_manager and scope_ok and instance.hospital.managers.filter(pk=user.pk).exists()
+        )
         if instance.user != user and not user.is_staff and not is_hospital_manager_of_this:
             raise PermissionDenied('본인의 후기만 삭제할 수 있습니다.')
         instance.delete()

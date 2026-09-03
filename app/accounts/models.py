@@ -74,6 +74,18 @@ class User(AbstractUser):
         help_text="병원 관리자 여부 (담당 병원/미용실만 관리 가능)"
     )
 
+    HOSPITAL_MANAGER_SCOPE_CHOICES = [
+        ('both', '병원+미용실'),
+        ('hospital', '병원 전용'),
+        ('grooming', '미용실 전용'),
+    ]
+    hospital_manager_scope = models.CharField(
+        max_length=10,
+        choices=HOSPITAL_MANAGER_SCOPE_CHOICES,
+        default='both',
+        help_text="병원 관리자가 접근 가능한 범위 (병원 전용/미용실 전용/전체)"
+    )
+
     # 추가 정보
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -50,14 +50,14 @@ class UserSerializer(serializers.ModelSerializer):
             'latitude', 'longitude',
             'notification_enabled', 'notification_distance',
             'is_social_account', 'social_providers', 'can_change_password',  # 추가
-            'is_staff', 'is_superuser', 'is_hospital_manager',
+            'is_staff', 'is_superuser', 'is_hospital_manager', 'hospital_manager_scope',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'username', 'created_at', 'updated_at',
             'display_name', 'display_image',
             'is_social_account', 'social_providers', 'can_change_password',  # 추가
-            'is_staff', 'is_superuser', 'is_hospital_manager'
+            'is_staff', 'is_superuser', 'is_hospital_manager', 'hospital_manager_scope'
         ]
     
     def get_is_social_account(self, obj):
@@ -114,6 +114,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     """사용자 정보 수정 Serializer"""
     is_staff = serializers.BooleanField(required=False)
     is_hospital_manager = serializers.BooleanField(required=False)
+    hospital_manager_scope = serializers.ChoiceField(choices=User.HOSPITAL_MANAGER_SCOPE_CHOICES, required=False)
 
     class Meta:
         model = User
@@ -121,17 +122,17 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'nickname', 'email', 'phone_number', 'profile_image',
             'latitude', 'longitude',
             'notification_enabled', 'notification_distance',
-            'is_staff', 'is_hospital_manager',
+            'is_staff', 'is_hospital_manager', 'hospital_manager_scope',
         ]
 
     def update(self, instance, validated_data):
-        """is_staff/is_hospital_manager는 요청자가 이미 관리자일 때만 반영 (자기 승격 방지)"""
+        """is_staff/is_hospital_manager/hospital_manager_scope는 요청자가
+        이미 관리자일 때만 반영 (자기 승격 방지)"""
         request = self.context.get('request')
         is_requester_staff = bool(request and request.user.is_staff)
-        if 'is_staff' in validated_data and not is_requester_staff:
-            validated_data.pop('is_staff')
-        if 'is_hospital_manager' in validated_data and not is_requester_staff:
-            validated_data.pop('is_hospital_manager')
+        for admin_only_field in ('is_staff', 'is_hospital_manager', 'hospital_manager_scope'):
+            if admin_only_field in validated_data and not is_requester_staff:
+                validated_data.pop(admin_only_field)
         return super().update(instance, validated_data)
 
 

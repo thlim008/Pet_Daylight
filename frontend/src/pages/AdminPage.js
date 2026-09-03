@@ -143,6 +143,7 @@ function AdminPage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isFullAdmin, setIsFullAdmin] = useState(false);
+  const [myHospitalManagerScope, setMyHospitalManagerScope] = useState('both');
   const [hospitalManagers, setHospitalManagers] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [items, setItems] = useState([]);
@@ -166,7 +167,7 @@ function AdminPage() {
   // 회원 수정 폼 상태
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingUserIsSocial, setEditingUserIsSocial] = useState(false);
-  const [userForm, setUserForm] = useState({ nickname: '', email: '', phone_number: '', is_staff: false, is_hospital_manager: false });
+  const [userForm, setUserForm] = useState({ nickname: '', email: '', phone_number: '', is_staff: false, is_hospital_manager: false, hospital_manager_scope: 'both' });
   const [newPassword, setNewPassword] = useState('');
 
   // 생애주기 가이드 추가/수정 폼 상태
@@ -176,8 +177,9 @@ function AdminPage() {
 
   const currentTab = TABS.find((t) => t.key === activeTab);
   const dataShape = currentTab?.shape || activeTab;
-  const HOSPITAL_MANAGER_TAB_KEYS = ['hospitals', 'groomings', 'hospital-reviews', 'grooming-reviews'];
-  const visibleTabs = isFullAdmin ? TABS : TABS.filter((t) => HOSPITAL_MANAGER_TAB_KEYS.includes(t.key));
+  const visibleTabs = isFullAdmin
+    ? TABS
+    : TABS.filter((t) => t.hospitalType && (myHospitalManagerScope === 'both' || t.hospitalType === myHospitalManagerScope));
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -190,8 +192,9 @@ function AdminPage() {
         }
         setIsAdmin(true);
         setIsFullAdmin(!!res.data.is_staff);
+        setMyHospitalManagerScope(res.data.hospital_manager_scope || 'both');
         if (!res.data.is_staff && res.data.is_hospital_manager) {
-          setActiveTab('hospitals');
+          setActiveTab(res.data.hospital_manager_scope === 'grooming' ? 'groomings' : 'hospitals');
         }
       } catch (err) {
         navigate('/login');
@@ -261,6 +264,7 @@ function AdminPage() {
       phone_number: user.phone_number || '',
       is_staff: user.is_staff,
       is_hospital_manager: !!user.is_hospital_manager,
+      hospital_manager_scope: user.hospital_manager_scope || 'both',
     });
     setNewPassword('');
   };
@@ -270,7 +274,11 @@ function AdminPage() {
     setSaving(true);
     try {
       // 빈 칸으로 둔 필드는 변경하지 않고 기존 값 유지 (비밀번호와 동일한 방식)
-      const payload = { is_staff: userForm.is_staff, is_hospital_manager: userForm.is_hospital_manager };
+      const payload = {
+        is_staff: userForm.is_staff,
+        is_hospital_manager: userForm.is_hospital_manager,
+        hospital_manager_scope: userForm.hospital_manager_scope,
+      };
       if (userForm.nickname) payload.nickname = userForm.nickname;
       if (userForm.email) payload.email = userForm.email;
       if (userForm.phone_number) payload.phone_number = userForm.phone_number;
@@ -301,11 +309,16 @@ function AdminPage() {
     try {
       const res = await API.get('/accounts/');
       const data = res.data.results || res.data;
-      setHospitalManagers((Array.isArray(data) ? data : []).filter((u) => u.is_hospital_manager));
+      const targetType = currentTab.hospitalType;
+      setHospitalManagers(
+        (Array.isArray(data) ? data : []).filter(
+          (u) => u.is_hospital_manager && (u.hospital_manager_scope === 'both' || u.hospital_manager_scope === targetType)
+        )
+      );
     } catch (err) {
       console.error('병원 관리자 목록 로드 실패:', err);
     }
-  }, [isFullAdmin]);
+  }, [isFullAdmin, currentTab.hospitalType]);
 
   const startAddHospital = () => {
     closeAllForms();
@@ -500,7 +513,11 @@ function AdminPage() {
             </td>
             <td className="px-4 py-3 text-sm whitespace-nowrap">
               {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap mr-1">관리자</span>}
-              {item.is_hospital_manager && <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium whitespace-nowrap">병원 관리자</span>}
+              {item.is_hospital_manager && (
+                <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium whitespace-nowrap">
+                  병원 관리자{item.hospital_manager_scope === 'hospital' ? ' (병원)' : item.hospital_manager_scope === 'grooming' ? ' (미용실)' : ''}
+                </span>
+              )}
             </td>
           </>
         );
@@ -777,6 +794,21 @@ function AdminPage() {
               />
               <label htmlFor="isHospitalManager" className="text-sm text-gray-700">병원 관리자 권한 부여 (담당 병원/미용실만 관리)</label>
             </div>
+            {userForm.is_hospital_manager && (
+              <div className="sm:col-span-2 pl-6">
+                <label className="block text-xs font-medium text-gray-600 mb-1">병원 관리자 접근 범위</label>
+                <select
+                  value={userForm.hospital_manager_scope}
+                  onChange={(e) => setUserForm({ ...userForm, hospital_manager_scope: e.target.value })}
+                  className="w-full sm:w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="both">병원 + 미용실 (전체)</option>
+                  <option value="hospital">병원 전용</option>
+                  <option value="grooming">미용실 전용</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">전용으로 설정하면 관리자 페이지에서 해당 종류의 탭만 보이고, 다른 종류는 등록/조회할 수 없습니다.</p>
+              </div>
+            )}
             <div className="sm:col-span-2 flex justify-end gap-2">
               <button type="button" onClick={closeAllForms} className="px-6 py-2 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50">취소</button>
               <button type="submit" disabled={saving} className="px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50">
