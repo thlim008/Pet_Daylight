@@ -7,13 +7,13 @@ function MissingPetMapPage() {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReport, setSelectedReport] = useState(null);
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [searchRadius, setSearchRadius] = useState(10000); // 기본 10km (미터)
   const myLocationMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
+  const currentInfoWindow = useRef(null);
   const isFirstMapCenter = useRef(true);
   const [locationQuery, setLocationQuery] = useState('');
   const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
@@ -227,9 +227,9 @@ function MissingPetMapPage() {
 
       marker.setMap(kakaoMap);
 
-      // 마커 클릭 이벤트
+      // 마커 클릭 이벤트 - 마커 위 InfoWindow로 표시
       window.kakao.maps.event.addListener(marker, 'click', () => {
-        setSelectedReport(report);
+        showReportInfoWindow(report, marker, kakaoMap);
         kakaoMap.setCenter(markerPosition);
       });
 
@@ -277,7 +277,7 @@ function MissingPetMapPage() {
       marker.setMap(map);
 
       window.kakao.maps.event.addListener(marker, 'click', () => {
-        setSelectedReport(report);
+        showReportInfoWindow(report, marker, map);
         map.setCenter(markerPosition);
       });
 
@@ -362,15 +362,6 @@ function MissingPetMapPage() {
     return new window.kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
   };
 
-  const getCategoryColor = (category) => {
-    const colors = {
-      missing: 'bg-red-100 text-red-700',
-      found: 'bg-purple-100 text-purple-700',
-      rescue: 'bg-green-100 text-green-700'
-    };
-    return colors[category] || 'bg-gray-100 text-gray-700';
-  };
-
   const getCategoryIcon = (category) => {
     const icons = {
       missing: '🆘',
@@ -378,6 +369,69 @@ function MissingPetMapPage() {
       rescue: '🚑'
     };
     return icons[category] || '📍';
+  };
+
+  // 제보 마커 정보창 표시 (병원 지도와 동일하게 마커 위 InfoWindow로 통일)
+  const showReportInfoWindow = (report, marker, kakaoMap) => {
+    if (currentInfoWindow.current) {
+      currentInfoWindow.current.close();
+    }
+
+    window.viewReportDetail = () => {
+      navigate(`/missing-pets/${report.id}`);
+    };
+
+    const badgeColors = {
+      missing: { bg: '#FEE2E2', text: '#B91C1C' },
+      found: { bg: '#F3E8FF', text: '#7E22CE' },
+      rescue: { bg: '#DCFCE7', text: '#15803D' },
+    };
+    const badge = badgeColors[report.category] || { bg: '#F3F4F6', text: '#374151' };
+
+    const distance = userLocation
+      ? getDistance(userLocation.latitude, userLocation.longitude, report.latitude, report.longitude)
+      : null;
+
+    const content = `
+      <div style="padding:16px; width:260px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; box-sizing:border-box;">
+        <div style="margin-bottom:8px;">
+          <span style="display:inline-block; padding:3px 8px; background:${badge.bg}; color:${badge.text}; border-radius:12px; font-size:11px; font-weight:600;">
+            ${getCategoryIcon(report.category)} ${report.category_display}
+          </span>
+        </div>
+        <h3 style="margin:0 0 6px 0; font-weight:700; font-size:15px; color:#111827; word-break:keep-all;">
+          ${report.name || `${report.species_display} 제보`}
+        </h3>
+        ${report.breed ? `<p style="margin:0 0 6px 0; font-size:12px; color:#6B7280;">품종: ${report.breed}</p>` : ''}
+        <p style="margin:0 0 8px 0; font-size:12px; color:#6B7280; line-height:1.4; word-break:keep-all;">
+          📍 ${report.address || ''}
+        </p>
+        ${distance !== null ? `
+          <p style="margin:0 0 8px 0; font-size:13px; color:#3B82F6; font-weight:600;">
+            🚶 현재 위치에서 약 ${(distance / 1000).toFixed(1)}km
+          </p>
+        ` : ''}
+        ${report.thumbnail ? `
+          <img src="${report.thumbnail}" alt="제보 사진" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:8px;" />
+        ` : ''}
+        <button
+          onclick="window.viewReportDetail()"
+          style="width:100%; padding:12px 16px; background:#111827; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top:4px;"
+          onmouseover="this.style.background='#1F2937'"
+          onmouseout="this.style.background='#111827'"
+        >
+          📝 상세 정보 보기
+        </button>
+      </div>
+    `;
+
+    const infowindow = new window.kakao.maps.InfoWindow({
+      content: content,
+      removable: false
+    });
+
+    infowindow.open(kakaoMap, marker);
+    currentInfoWindow.current = infowindow;
   };
 
   if ((loading && !map) || !userLocation) {
@@ -626,79 +680,6 @@ function MissingPetMapPage() {
           </div>
         </div>
 
-        {/* 선택된 제보 정보 */}
-        {selectedReport && (
-          <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 lg:p-6 max-h-[50vh] lg:max-h-none">
-            <div className="mb-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-3xl">{getCategoryIcon(selectedReport.category)}</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(selectedReport.category)}`}>
-                  {selectedReport.category_display}
-                </span>
-              </div>
-
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {selectedReport.name || `${selectedReport.species_display} 제보`}
-              </h2>
-
-              {selectedReport.breed && (
-                <p className="text-gray-600 mb-2">품종: {selectedReport.breed}</p>
-              )}
-
-              <p className="text-sm text-gray-500 mb-4">
-                📍 {selectedReport.address}
-              </p>
-
-              {/* 거리 표시 */}
-              <p className="text-sm font-medium text-blue-600 mb-4">
-                🚶 현재 위치에서 약 {
-                  (getDistance(
-                    userLocation.latitude,
-                    userLocation.longitude,
-                    selectedReport.latitude,
-                    selectedReport.longitude
-                  ) / 1000).toFixed(1)
-                }km
-              </p>
-
-              {selectedReport.thumbnail && (
-                <img 
-                  src={selectedReport.thumbnail} 
-                  alt="제보 사진"
-                  className="w-full h-48 object-cover rounded-xl mb-4"
-                />
-              )}
-
-              <p className="text-gray-700 leading-relaxed mb-4 line-clamp-3">
-                {selectedReport.description}
-              </p>
-
-              <div className="pt-4 border-t border-gray-200 space-y-2">
-                <div className="flex items-center text-sm text-gray-600">
-                  <span className="mr-2">📅</span>
-                  <span>{new Date(selectedReport.occurred_at).toLocaleDateString('ko-KR')}</span>
-                </div>
-                
-                <button
-                  onClick={() => navigate(`/missing-pets/${selectedReport.id}`)}
-                  className="w-full px-4 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all mt-4"
-                >
-                  상세 정보 보기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 사이드바 닫기 버튼 */}
-        {selectedReport && (
-          <button
-            onClick={() => setSelectedReport(null)}
-            className="absolute top-2 right-2 lg:top-4 lg:right-[25rem] bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-all z-10"
-          >
-            ✕
-          </button>
-        )}
       </div>
     </div>
   );
