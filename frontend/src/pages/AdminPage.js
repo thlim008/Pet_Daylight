@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API, { authAPI } from '../services/api';
 import KakaoMap from '../components/KakaoMap';
@@ -218,7 +218,12 @@ function AdminPage() {
     setEditingGuideId(null);
   };
 
+  const loadItemsRequestId = useRef(0);
+
   const loadItems = useCallback(async () => {
+    // 탭을 빠르게 전환하면 이전 탭 요청이 늦게 응답할 수 있어서,
+    // 지금 이 요청이 여전히 최신 요청인지 확인 후에만 결과 반영
+    const requestId = ++loadItemsRequestId.current;
     setLoading(true);
     try {
       const params = {};
@@ -227,15 +232,17 @@ function AdminPage() {
         else if (currentTab.shape === 'hospital-reviews') params.hospital_type = currentTab.hospitalType;
       }
       const res = await API.get(`/${currentTab.endpoint}/`, { params });
+      if (requestId !== loadItemsRequestId.current) return;
       const data = res.data.results || res.data;
       const sorted = Array.isArray(data) ? [...data].sort((a, b) => a.id - b.id) : [];
       setItems(sorted);
       setCurrentPage(1);
     } catch (err) {
+      if (requestId !== loadItemsRequestId.current) return;
       console.error('목록 로드 실패:', err);
       setItems([]);
     } finally {
-      setLoading(false);
+      if (requestId === loadItemsRequestId.current) setLoading(false);
     }
   }, [currentTab.endpoint, currentTab.hospitalType, currentTab.shape]);
 
