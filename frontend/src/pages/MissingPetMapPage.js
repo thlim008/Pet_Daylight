@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { authAPI } from '../services/api';
@@ -12,6 +12,12 @@ function MissingPetMapPage() {
   const [markers, setMarkers] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [searchRadius, setSearchRadius] = useState(10000); // 기본 10km (미터)
+  const myLocationMarkerRef = useRef(null);
+  const radiusCircleRef = useRef(null);
+  const isFirstMapCenter = useRef(true);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   useEffect(() => {
     loadUserSettings();
@@ -180,6 +186,7 @@ function MissingPetMapPage() {
       image: getMyLocationMarkerImage()
     });
     myLocationMarker.setMap(kakaoMap);
+    myLocationMarkerRef.current = myLocationMarker;
 
     // 검색 반경 원 표시
     const circle = new window.kakao.maps.Circle({
@@ -193,6 +200,7 @@ function MissingPetMapPage() {
       fillOpacity: 0.1
     });
     circle.setMap(kakaoMap);
+    radiusCircleRef.current = circle;
 
     // 거리 기반 필터링
     const nearbyReports = reports.filter(report => {
@@ -229,6 +237,78 @@ function MissingPetMapPage() {
     });
 
     setMarkers(newMarkers);
+  };
+
+  // 지도가 이미 떠 있는 상태에서 검색 기준 위치가 바뀌면 지도/마커를 새 위치로 이동
+  const moveMapToLocation = (lat, lng) => {
+    if (!map) return;
+    const center = new window.kakao.maps.LatLng(lat, lng);
+    map.setCenter(center);
+    map.setLevel(getMapLevel(searchRadius));
+    if (myLocationMarkerRef.current) myLocationMarkerRef.current.setPosition(center);
+    if (radiusCircleRef.current) radiusCircleRef.current.setPosition(center);
+
+    markers.forEach((m) => m.setMap(null));
+
+    const nearby = reports.filter((report) => getDistance(lat, lng, report.latitude, report.longitude) <= searchRadius);
+    const newMarkers = nearby.map((report) => {
+      const markerPosition = new window.kakao.maps.LatLng(report.latitude, report.longitude);
+      const markerImage = getMarkerImage(report.category);
+
+      const marker = new window.kakao.maps.Marker({
+        position: markerPosition,
+        image: markerImage,
+        clickable: true
+      });
+      marker.setMap(map);
+
+      window.kakao.maps.event.addListener(marker, 'click', () => {
+        setSelectedReport(report);
+        map.setCenter(markerPosition);
+      });
+
+      return marker;
+    });
+    setMarkers(newMarkers);
+  };
+
+  useEffect(() => {
+    if (!map || !userLocation) return;
+    if (isFirstMapCenter.current) {
+      // initMap이 이미 이 좌표로 지도를 생성했으므로 최초 1회는 건너뜀
+      isFirstMapCenter.current = false;
+      return;
+    }
+    moveMapToLocation(userLocation.latitude, userLocation.longitude);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, map]);
+
+  // 검색창에 입력한 지역/장소로 검색 기준 위치 변경
+  const handleLocationSearch = () => {
+    const query = locationQuery.trim();
+    if (!query) return;
+    if (!window.kakao?.maps?.services) {
+      alert('지도 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    setSearchingLocation(true);
+    const places = new window.kakao.maps.services.Places();
+    places.keywordSearch(query, (result, status) => {
+      setSearchingLocation(false);
+      if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+        const place = result[0];
+        setUserLocation({ latitude: parseFloat(place.y), longitude: parseFloat(place.x) });
+        setSearchedPlaceLabel(place.place_name);
+      } else {
+        alert('검색 결과가 없습니다. 다른 검색어로 시도해보세요.');
+      }
+    });
+  };
+
+  const handleResetToMyLocation = () => {
+    setSearchedPlaceLabel(null);
+    setLocationQuery('');
+    getUserLocation();
   };
 
   const getMyLocationMarkerImage = () => {
@@ -338,8 +418,40 @@ function MissingPetMapPage() {
           </div>
         </header>
 
+        {/* 검색 위치 */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
+            <div className="flex-1 min-w-[240px] flex gap-2">
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
+                placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <button
+                onClick={handleLocationSearch}
+                disabled={searchingLocation}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+              >
+                {searchingLocation ? '검색중...' : '검색'}
+              </button>
+              {searchedPlaceLabel && (
+                <button
+                  onClick={handleResetToMyLocation}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                >
+                  내 위치로
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* 빈 화면 */}
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="flex items-center justify-center h-[calc(100vh-136px)]">
           <div className="text-center">
             <div className="text-6xl mb-4">🗺️</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -418,8 +530,40 @@ function MissingPetMapPage() {
         </div>
       </header>
 
+      {/* 검색 위치 */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
+          <div className="flex-1 min-w-[240px] flex gap-2">
+            <input
+              type="text"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
+              placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            />
+            <button
+              onClick={handleLocationSearch}
+              disabled={searchingLocation}
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+            >
+              {searchingLocation ? '검색중...' : '검색'}
+            </button>
+            {searchedPlaceLabel && (
+              <button
+                onClick={handleResetToMyLocation}
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+              >
+                내 위치로
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 메인: 지도 + 사이드바 */}
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-136px)]">
         {/* 지도 */}
         <div className="flex-1 relative h-[50vh] lg:h-auto">
           <div id="map" className="w-full h-full"></div>
