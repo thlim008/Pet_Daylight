@@ -28,6 +28,8 @@ function MissingPetEditPage() {
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   useEffect(() => {
     loadPet();
@@ -112,6 +114,31 @@ function MissingPetEditPage() {
       latitude: location.latitude,
       longitude: location.longitude
     }));
+  };
+
+  // 지역/장소 검색으로 위치 설정 (상단 검색바)
+  const handleLocationSearch = () => {
+    const query = locationQuery.trim();
+    if (!query) return;
+    if (!window.kakao?.maps?.services) {
+      alert('지도 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    setSearchingLocation(true);
+    const places = new window.kakao.maps.services.Places();
+    places.keywordSearch(query, (result, status) => {
+      setSearchingLocation(false);
+      if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+        const place = result[0];
+        handleLocationSelect({
+          latitude: parseFloat(place.y),
+          longitude: parseFloat(place.x),
+          address: place.road_address_name || place.address_name || place.place_name,
+        });
+      } else {
+        alert('검색 결과가 없습니다. 다른 검색어로 시도해보세요.');
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -344,6 +371,24 @@ function MissingPetEditPage() {
                 <label className="block text-sm font-semibold text-gray-900 mb-3">
                   발생/발견 위치 *
                 </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLocationSearch(); } }}
+                    placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+                    className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleLocationSearch}
+                    disabled={searchingLocation}
+                    className="px-4 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {searchingLocation ? '검색중...' : '검색'}
+                  </button>
+                </div>
                 <div className="rounded-xl overflow-hidden border-2 border-gray-200">
                   <KakaoMap
                     latitude={formData.latitude}
@@ -353,7 +398,7 @@ function MissingPetEditPage() {
                     height="500px"
                     onLocationSelect={handleLocationSelect}
                     draggable={true}
-                    showSearch={true}
+                    showSearch={false}
                   />
                 </div>
                 {formData.address && (
