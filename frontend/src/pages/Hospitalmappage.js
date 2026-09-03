@@ -378,7 +378,21 @@ function HospitalMapPage() {
     map.setCenter(center);
     map.setLevel(getMapLevel(searchRadius));
     if (myLocationMarkerRef.current) myLocationMarkerRef.current.setPosition(center);
-    if (radiusCircleRef.current) radiusCircleRef.current.setPosition(center);
+
+    // Circle은 setPosition 대신 안전하게 재생성 (버전에 따라 setPosition 미지원 가능)
+    if (radiusCircleRef.current) radiusCircleRef.current.setMap(null);
+    const newCircle = new window.kakao.maps.Circle({
+      center,
+      radius: searchRadius,
+      strokeWeight: 2,
+      strokeColor: '#3B82F6',
+      strokeOpacity: 0.5,
+      strokeStyle: 'dashed',
+      fillColor: '#3B82F6',
+      fillOpacity: 0.1
+    });
+    newCircle.setMap(map);
+    radiusCircleRef.current = newCircle;
 
     // 기존 마커 제거하고 새 위치 기준으로 카카오 장소 재검색
     markers.forEach((m) => m.setMap(null));
