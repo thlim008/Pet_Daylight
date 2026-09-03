@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '../services/api';
+import { getPasswordError } from '../utils/password';
+import PasswordInput from '../components/PasswordInput';
 
 function PasswordResetConfirmPage() {
   const navigate = useNavigate();
@@ -33,8 +35,9 @@ function PasswordResetConfirmPage() {
       return;
     }
 
-    if (formData.new_password.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다.');
+    const passwordError = getPasswordError(formData.new_password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }
@@ -58,6 +61,8 @@ function PasswordResetConfirmPage() {
           setError('만료되었거나 유효하지 않은 링크입니다. 비밀번호 재설정을 다시 요청해주세요.');
         } else if (errorData.uid) {
           setError('유효하지 않은 링크입니다.');
+        } else if (errorData.new_password) {
+          setError(errorData.new_password[0] || errorData.new_password);
         } else if (errorData.new_password_confirm) {
           setError(errorData.new_password_confirm[0] || errorData.new_password_confirm);
         } else if (errorData.non_field_errors) {
@@ -170,23 +175,21 @@ function PasswordResetConfirmPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">새 비밀번호</label>
-              <input
+              <PasswordInput
                 name="new_password"
-                type="password"
                 value={formData.new_password}
                 onChange={handleChange}
                 required
                 autoComplete="new-password"
                 className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                placeholder="8자 이상"
+                placeholder="8자 이상, 영문+특수문자 포함"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호 확인</label>
-              <input
+              <PasswordInput
                 name="new_password_confirm"
-                type="password"
                 value={formData.new_password_confirm}
                 onChange={handleChange}
                 required

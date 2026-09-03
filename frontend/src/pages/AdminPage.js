@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import API, { authAPI } from '../services/api';
 import KakaoMap from '../components/KakaoMap';
 import { formatBusinessPhone, formatPhoneInput } from '../utils/phone';
+import { getPasswordError } from '../utils/password';
+import PasswordInput from '../components/PasswordInput';
 
 const TABS = [
   { key: 'users', label: '회원', endpoint: 'accounts' },
@@ -256,8 +258,9 @@ function AdminPage() {
 
       const res = await API.patch(`/accounts/${editingUserId}/`, payload);
       if (newPassword && !editingUserIsSocial) {
-        if (newPassword.length < 8) {
-          alert('비밀번호는 8자 이상이어야 합니다.');
+        const passwordError = getPasswordError(newPassword);
+        if (passwordError) {
+          alert(passwordError);
           setSaving(false);
           return;
         }
@@ -671,12 +674,11 @@ function AdminPage() {
             ) : (
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">새 비밀번호 (선택, 비워두면 유지)</label>
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="8자 이상"
+                  placeholder="8자 이상, 영문+특수문자 포함"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 />
               </div>

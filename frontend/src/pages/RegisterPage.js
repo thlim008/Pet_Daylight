@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { formatPhoneInput, isValidPhone } from '../utils/phone';
+import { getPasswordError } from '../utils/password';
+import PasswordInput from '../components/PasswordInput';
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -29,8 +31,9 @@ function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다.');
+    const passwordError = getPasswordError(formData.password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -136,22 +139,20 @@ function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                placeholder="8자 이상"
+                placeholder="8자 이상, 영문+특수문자 포함"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호 확인</label>
-              <input
+              <PasswordInput
                 name="password_confirm"
-                type="password"
                 value={formData.password_confirm}
                 onChange={handleChange}
                 required

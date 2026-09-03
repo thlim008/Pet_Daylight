@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import API from '../services/api';
 import { formatPhoneInput, isValidPhone } from '../utils/phone';
+import { getPasswordError } from '../utils/password';
+import PasswordInput from '../components/PasswordInput';
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -198,8 +200,9 @@ function ProfilePage() {
       return;
     }
 
-    if (passwordData.new_password.length < 8) {
-      setPasswordError('비밀번호는 8자 이상이어야 합니다.');
+    const newPasswordError = getPasswordError(passwordData.new_password);
+    if (newPasswordError) {
+      setPasswordError(newPasswordError);
       setPasswordLoading(false);
       return;
     }
@@ -226,6 +229,8 @@ function ProfilePage() {
 
         if (errorData.current_password) {
           setPasswordError('현재 비밀번호가 일치하지 않습니다.');
+        } else if (errorData.new_password) {
+          setPasswordError(errorData.new_password[0] || errorData.new_password);
         } else if (errorData.new_password_confirm) {
           setPasswordError('새 비밀번호가 일치하지 않습니다.');
         } else if (errorData.non_field_errors) {
@@ -649,8 +654,7 @@ function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         현재 비밀번호
                       </label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         value={passwordData.current_password}
                         onChange={(e) =>
                           setPasswordData({ ...passwordData, current_password: e.target.value })
@@ -665,8 +669,7 @@ function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         새 비밀번호
                       </label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         value={passwordData.new_password}
                         onChange={(e) =>
                           setPasswordData({ ...passwordData, new_password: e.target.value })
@@ -674,7 +677,7 @@ function ProfilePage() {
                         required
                         autoComplete="new-password"
                         className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                        placeholder="8자 이상"
+                        placeholder="8자 이상, 영문+특수문자 포함"
                       />
                     </div>
 
@@ -682,8 +685,7 @@ function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         새 비밀번호 확인
                       </label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         value={passwordData.new_password_confirm}
                         onChange={(e) =>
                           setPasswordData({

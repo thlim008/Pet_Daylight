@@ -9,7 +9,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError as DjangoValidationError
 
+from app.validators import validate_password_strength
 from .models import User
 from .serializers import (
     UserSerializer,
@@ -218,8 +220,10 @@ class UserViewSet(viewsets.ModelViewSet):
         if not target.has_usable_password() and target.socialaccount_set.exists():
             return Response({'error': '소셜 로그인 계정은 비밀번호를 설정할 수 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
         password = request.data.get('password', '')
-        if len(password) < 8:
-            return Response({'error': '비밀번호는 8자 이상이어야 합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_password_strength(password)
+        except DjangoValidationError as e:
+            return Response({'error': e.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
         target.set_password(password)
         target.save()
         return Response({'message': '비밀번호가 변경되었습니다.'})

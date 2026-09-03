@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import PasswordInput from '../components/PasswordInput';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -200,9 +201,8 @@ function LoginPage() {
                   비밀번호를 잊으셨나요?
                 </button>
               </div>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 value={formData.password}
                 onChange={handleChange}
                 required

@@ -13,6 +13,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
 
+from app.validators import validate_password_strength
+
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
@@ -74,9 +76,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """회원가입 Serializer"""
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=8, validators=[validate_password_strength])
     password_confirm = serializers.CharField(write_only=True, min_length=8)
-    
+
     class Meta:
         model = User
         fields = [
@@ -195,7 +197,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     """비밀번호 재설정 확인 (새 비밀번호 입력)"""
     uid = serializers.CharField()
     token = serializers.CharField()
-    new_password = serializers.CharField(min_length=8, write_only=True)
+    new_password = serializers.CharField(min_length=8, write_only=True, validators=[validate_password_strength])
     new_password_confirm = serializers.CharField(min_length=8, write_only=True)
     
     def validate(self, data):
@@ -249,7 +251,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 class PasswordChangeSerializer(serializers.Serializer):
     """로그인 상태에서 비밀번호 변경"""
     current_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(min_length=8, write_only=True)
+    new_password = serializers.CharField(min_length=8, write_only=True, validators=[validate_password_strength])
     new_password_confirm = serializers.CharField(min_length=8, write_only=True)
     
     def validate(self, data):
