@@ -350,6 +350,11 @@ class HospitalReviewViewSet(viewsets.ModelViewSet):
         if hospital_id:
             queryset = queryset.filter(hospital_id=hospital_id)
 
+        # 병원 종류 필터 (병원/미용실 리뷰 탭 구분용)
+        hospital_type = self.request.query_params.get('hospital_type', None)
+        if hospital_type:
+            queryset = queryset.filter(hospital__type=hospital_type)
+
         # 평점 필터
         rating = self.request.query_params.get('rating', None)
         if rating:

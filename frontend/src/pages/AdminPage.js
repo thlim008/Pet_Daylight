@@ -12,8 +12,10 @@ const TABS = [
   { key: 'missing-pet-comments', label: '제보 댓글', endpoint: 'missing-pets/comments' },
   { key: 'communities', label: '커뮤니티 게시글', endpoint: 'communities' },
   { key: 'community-comments', label: '커뮤니티 댓글', endpoint: 'communities/comments' },
-  { key: 'hospitals', label: '병원/미용실', endpoint: 'hospitals' },
-  { key: 'hospital-reviews', label: '병원 리뷰', endpoint: 'hospitals/reviews' },
+  { key: 'hospitals', label: '병원', endpoint: 'hospitals', shape: 'hospitals', hospitalType: 'hospital' },
+  { key: 'groomings', label: '미용실', endpoint: 'hospitals', shape: 'hospitals', hospitalType: 'grooming' },
+  { key: 'hospital-reviews', label: '병원 리뷰', endpoint: 'hospitals/reviews', shape: 'hospital-reviews', hospitalType: 'hospital' },
+  { key: 'grooming-reviews', label: '미용실 리뷰', endpoint: 'hospitals/reviews', shape: 'hospital-reviews', hospitalType: 'grooming' },
   { key: 'guides', label: '생애주기 가이드', endpoint: 'lifecycles/guides' },
 ];
 
@@ -85,18 +87,6 @@ const FILTER_CONFIG = {
         { value: 'closed', label: '종료' },
       ],
       match: (item, value) => !value || item.status === value,
-    },
-  ],
-  hospitals: [
-    {
-      key: 'type',
-      label: '유형',
-      options: [
-        { value: '', label: '전체' },
-        { value: 'hospital', label: '동물병원' },
-        { value: 'grooming', label: '미용실' },
-      ],
-      match: (item, value) => !value || item.type === value,
     },
   ],
   guides: [
@@ -185,7 +175,9 @@ function AdminPage() {
   const [guideForm, setGuideForm] = useState(emptyGuide);
 
   const currentTab = TABS.find((t) => t.key === activeTab);
-  const visibleTabs = isFullAdmin ? TABS : TABS.filter((t) => t.key === 'hospitals' || t.key === 'hospital-reviews');
+  const dataShape = currentTab?.shape || activeTab;
+  const HOSPITAL_MANAGER_TAB_KEYS = ['hospitals', 'groomings', 'hospital-reviews', 'grooming-reviews'];
+  const visibleTabs = isFullAdmin ? TABS : TABS.filter((t) => HOSPITAL_MANAGER_TAB_KEYS.includes(t.key));
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -226,7 +218,12 @@ function AdminPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await API.get(`/${currentTab.endpoint}/`);
+      const params = {};
+      if (currentTab.hospitalType) {
+        if (currentTab.shape === 'hospitals') params.type = currentTab.hospitalType;
+        else if (currentTab.shape === 'hospital-reviews') params.hospital_type = currentTab.hospitalType;
+      }
+      const res = await API.get(`/${currentTab.endpoint}/`, { params });
       const data = res.data.results || res.data;
       const sorted = Array.isArray(data) ? [...data].sort((a, b) => a.id - b.id) : [];
       setItems(sorted);
@@ -237,7 +234,7 @@ function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentTab.endpoint]);
+  }, [currentTab.endpoint, currentTab.hospitalType, currentTab.shape]);
 
   useEffect(() => {
     if (isAdmin) loadItems();
@@ -312,7 +309,7 @@ function AdminPage() {
 
   const startAddHospital = () => {
     closeAllForms();
-    setHospitalForm(emptyHospital);
+    setHospitalForm({ ...emptyHospital, type: currentTab.hospitalType || 'hospital' });
     setOpeningHours(emptyOpeningHours());
     setHospitalExistingImages([]);
     setShowHospitalForm(true);
@@ -484,7 +481,7 @@ function AdminPage() {
   if (!isAdmin) return null;
 
   const renderRow = (item) => {
-    switch (activeTab) {
+    switch (dataShape) {
       case 'users':
         return (
           <>
@@ -546,7 +543,6 @@ function AdminPage() {
         return (
           <>
             <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.name}</td>
-            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.type === 'hospital' ? '동물병원' : '미용실'}</td>
             <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-xs">{item.address}</td>
             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">⭐ {item.rating || 0}</td>
             {isFullAdmin && (
@@ -587,13 +583,15 @@ function AdminPage() {
     'missing-pet-comments': ['ID', '내용', '작성자', '제보'],
     communities: ['ID', '제목', '작성자', '카테고리', '조회수'],
     'community-comments': ['ID', '내용', '작성자', '게시글'],
-    hospitals: isFullAdmin ? ['ID', '이름', '유형', '주소', '평점', '담당자'] : ['ID', '이름', '유형', '주소', '평점'],
+    hospitals: isFullAdmin ? ['ID', '이름', '주소', '평점', '담당자'] : ['ID', '이름', '주소', '평점'],
+    groomings: isFullAdmin ? ['ID', '이름', '주소', '평점', '담당자'] : ['ID', '이름', '주소', '평점'],
     'hospital-reviews': ['ID', '병원', '내용', '작성자', '평점'],
+    'grooming-reviews': ['ID', '미용실', '내용', '작성자', '평점'],
     guides: ['ID', '제목', '종류', '단계', '순서'],
   };
 
   const getSearchableText = (item) => {
-    switch (activeTab) {
+    switch (dataShape) {
       case 'users':
         return [item.nickname, item.username, item.email, item.phone_number];
       case 'missing-pets':
@@ -634,7 +632,7 @@ function AdminPage() {
         <button onClick={() => startEditUser(item)} className="text-xs font-medium text-blue-500 hover:text-blue-700 hover:underline mr-3">수정</button>
       );
     }
-    if (activeTab === 'hospitals') {
+    if (dataShape === 'hospitals') {
       return (
         <button onClick={() => startEditHospital(item)} className="text-xs font-medium text-blue-500 hover:text-blue-700 hover:underline mr-3">수정</button>
       );
@@ -697,12 +695,12 @@ function AdminPage() {
               </select>
             ))}
           </div>
-          {activeTab === 'hospitals' && (
+          {dataShape === 'hospitals' && (
             <button
               onClick={() => (showHospitalForm ? closeAllForms() : startAddHospital())}
               className="px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all whitespace-nowrap"
             >
-              {showHospitalForm ? '닫기' : '+ 병원/미용실 추가'}
+              {showHospitalForm ? '닫기' : `+ ${currentTab.label} 추가`}
             </button>
           )}
           {activeTab === 'guides' && (
@@ -789,18 +787,10 @@ function AdminPage() {
         )}
 
         {/* 병원/미용실 추가·수정 폼 */}
-        {activeTab === 'hospitals' && showHospitalForm && (
+        {dataShape === 'hospitals' && showHospitalForm && (
           <form onSubmit={handleSaveHospital} className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">유형 *</label>
-              <select
-                value={hospitalForm.type}
-                onChange={(e) => setHospitalForm({ ...hospitalForm, type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-              >
-                <option value="hospital">동물병원</option>
-                <option value="grooming">미용실</option>
-              </select>
+            <div className="sm:col-span-2 text-xs text-gray-500">
+              유형: <span className="font-medium text-gray-700">{hospitalForm.type === 'hospital' ? '동물병원' : '미용실'}</span> ({currentTab.label} 탭에서 등록/수정 중)
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">이름 *</label>
