@@ -846,7 +846,7 @@ function AdminPage() {
             <div className="text-center py-16 text-gray-500">데이터가 없습니다.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[720px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {headers[activeTab].map((h) => (
