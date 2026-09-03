@@ -36,7 +36,7 @@ class SocialLoginRedirectMiddleware:
             
             # 이메일 자동 생성 로직
             if not user.email:
-                user.email = f"petdaylight_social_{user.username}@petdaylight.local"
+                user.email = f"petdaylight_social_{user.id}@petdaylight.local"
                 user.save()
                 if settings.DEBUG:
                     print(f"📧 [Middleware] 이메일 자동 생성: {user.email}", file=sys.stderr)
