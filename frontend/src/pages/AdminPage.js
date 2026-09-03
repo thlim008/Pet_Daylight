@@ -79,6 +79,7 @@ function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const PAGE_SIZE = 20;
 
   // 병원 추가/수정 폼 상태
@@ -440,6 +441,39 @@ function AdminPage() {
     guides: ['ID', '제목', '종류', '단계', '순서'],
   };
 
+  const getSearchableText = (item) => {
+    switch (activeTab) {
+      case 'users':
+        return [item.nickname, item.username, item.email, item.phone_number];
+      case 'missing-pets':
+        return [item.name, item.category_display, item.user?.nickname, item.user?.username, item.address, item.status_display];
+      case 'missing-pet-comments':
+        return [item.content, item.user?.nickname, item.user?.username];
+      case 'communities':
+        return [item.title, item.user?.nickname, item.user?.username, item.category];
+      case 'community-comments':
+        return [item.content, item.user?.nickname, item.user?.username];
+      case 'hospitals':
+        return [item.name, item.address];
+      case 'hospital-reviews':
+        return [item.hospital_name, item.content, item.user_name, item.user?.nickname];
+      case 'guides':
+        return [item.title, item.custom_species_name];
+      default:
+        return [];
+    }
+  };
+
+  const filteredItems = searchQuery.trim()
+    ? items.filter((item) =>
+        getSearchableText(item)
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(searchQuery.trim().toLowerCase())
+      )
+    : items;
+
   const editableRow = (item) => {
     if (activeTab === 'users') {
       return (
@@ -474,7 +508,7 @@ function AdminPage() {
             {TABS.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => { setActiveTab(tab.key); closeAllForms(); }}
+                onClick={() => { setActiveTab(tab.key); closeAllForms(); setSearchQuery(''); }}
                 className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
                   activeTab === tab.key
                     ? 'text-amber-600 border-b-2 border-amber-600'
@@ -501,6 +535,16 @@ function AdminPage() {
               {showGuideForm ? '닫기' : '+ 가이드 추가'}
             </button>
           )}
+        </div>
+
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            placeholder="검색어를 입력하세요"
+            className="w-full sm:w-80 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          />
         </div>
 
         {/* 회원 수정 폼 */}
@@ -843,8 +887,10 @@ function AdminPage() {
             <div className="text-center py-16">
               <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-900 border-t-transparent mx-auto"></div>
             </div>
-          ) : items.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">데이터가 없습니다.</div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              {searchQuery.trim() ? '검색 결과가 없습니다.' : '데이터가 없습니다.'}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px]">
@@ -857,7 +903,7 @@ function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((item, index) => (
+                  {filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((item, index) => (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                       {renderRow(item)}
@@ -881,7 +927,7 @@ function AdminPage() {
         </div>
 
         {/* 페이지네이션 */}
-        {items.length > PAGE_SIZE && (
+        {filteredItems.length > PAGE_SIZE && (
           <div className="flex items-center justify-center gap-2 mt-4">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -891,11 +937,11 @@ function AdminPage() {
               이전
             </button>
             <span className="text-sm text-gray-600 px-2">
-              {currentPage} / {Math.ceil(items.length / PAGE_SIZE)} 페이지 ({items.length}개)
+              {currentPage} / {Math.ceil(filteredItems.length / PAGE_SIZE)} 페이지 ({filteredItems.length}개)
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(Math.ceil(items.length / PAGE_SIZE), p + 1))}
-              disabled={currentPage >= Math.ceil(items.length / PAGE_SIZE)}
+              onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredItems.length / PAGE_SIZE), p + 1))}
+              disabled={currentPage >= Math.ceil(filteredItems.length / PAGE_SIZE)}
               className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               다음
