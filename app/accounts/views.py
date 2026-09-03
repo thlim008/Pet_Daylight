@@ -265,6 +265,21 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'latitude와 longitude는 숫자여야 합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+            return Response(
+                {'error': '유효하지 않은 위도/경도 값입니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         user.latitude = latitude
         user.longitude = longitude
         user.save()

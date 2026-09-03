@@ -3,6 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { authAPI } from '../services/api';
 
+// 카카오 자동동기화 캐시 (같은 지역 재방문 시 카카오 API 재호출 방지)
+const KAKAO_SYNC_CACHE_KEY = 'hospitalKakaoSyncCache';
+const KAKAO_SYNC_CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
+
+function getKakaoSyncCacheKey(lat, lng, radius) {
+  // 좌표를 약 1km 단위로 반올림해서 같은 근방 재검색은 하나의 캐시로 취급
+  return `${lat.toFixed(2)}_${lng.toFixed(2)}_${radius}`;
+}
+
+function hasRecentKakaoSync(key) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(KAKAO_SYNC_CACHE_KEY) || '{}');
+    const ts = cache[key];
+    return !!ts && (Date.now() - ts < KAKAO_SYNC_CACHE_TTL);
+  } catch {
+    return false;
+  }
+}
+
+function markKakaoSynced(key) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(KAKAO_SYNC_CACHE_KEY) || '{}');
+    cache[key] = Date.now();
+    localStorage.setItem(KAKAO_SYNC_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // localStorage 사용 불가 환경이면 캐시 없이 매번 동기화 (기존 동작과 동일)
+  }
+}
+
 function HospitalListPage() {
   const navigate = useNavigate();
   const [hospitals, setHospitals] = useState([]);
@@ -173,8 +202,14 @@ function HospitalListPage() {
       return;
     }
 
-    const places = new window.kakao.maps.services.Places();
     const effectiveRadius = Math.min(searchRadius, 20000);
+    const syncCacheKey = getKakaoSyncCacheKey(userLocation.latitude, userLocation.longitude, effectiveRadius);
+    if (hasRecentKakaoSync(syncCacheKey)) {
+      setKakaoSyncDone(true);
+      return;
+    }
+
+    const places = new window.kakao.maps.services.Places();
 
     // 검색 지점: 중심 + (반경이 넓을 때) 밀집 지역 캡(45개) 우회용 8방위 보조 지점
     const searchPoints = [userLocation];
@@ -222,6 +257,7 @@ function HospitalListPage() {
       if (saved) savedPlaces.push(place.place_name);
     }
 
+    markKakaoSynced(syncCacheKey);
     setKakaoSyncDone(true);
   };
 
