@@ -96,7 +96,9 @@ def generate_qr_code(missing_pet):
     Returns:
         str: QR코드 이미지 URL
     """
-    base_url = getattr(settings, 'FRONTEND_URL', 'https://petdaylight.mooo.com')
+    # settings.FRONTEND_URL은 개발 설정(config/settings.py)에서 항상
+    # localhost 기본값으로 존재하므로 getattr 폴백이 무력화됨 - 환경변수를 직접 확인
+    base_url = os.environ.get('FRONTEND_URL') or 'https://petdaylight.mooo.com'
     url = f"{base_url}/missing-pets/{missing_pet.id}"
     
     qr = qrcode.QRCode(

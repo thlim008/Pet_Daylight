@@ -27,6 +27,7 @@ function MissingPetListPage() {
   };
 
   const [filters, setFilters] = useState(getInitialFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // 필터가 변경될 때마다 localStorage에 저장
   useEffect(() => {
@@ -94,6 +95,9 @@ function MissingPetListPage() {
   const getCategoryBadge = (category) => {
     if (category === 'missing') {
       return <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">실종</span>;
+    }
+    if (category === 'rescue') {
+      return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">구조</span>;
     }
     return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">발견</span>;
   };
@@ -196,68 +200,94 @@ function MissingPetListPage() {
       {/* 필터 */}
       <section className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-medium text-gray-700">
-              필터 {activeFiltersCount > 0 && (
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="lg:hidden w-full flex items-center justify-between py-2 mb-2 font-medium text-gray-900"
+          >
+            <span>
+              🔍 필터 {activeFiltersCount > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">
                   {activeFiltersCount}개 적용중
                 </span>
               )}
-            </h2>
+            </span>
+            <span>{filterOpen ? '▲' : '▼'}</span>
+          </button>
+
+          <div className={`${filterOpen ? 'block' : 'hidden'} lg:block`}>
+            <div className="hidden lg:flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-gray-700">
+                필터 {activeFiltersCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">
+                    {activeFiltersCount}개 적용중
+                  </span>
+                )}
+              </h2>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={handleResetFilters}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  필터 초기화
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              {/* 검색 */}
+              <input
+                type="text"
+                placeholder="이름, 품종, 위치로 검색..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              />
+
+              {/* 구분 */}
+              <select
+                value={filters.category}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              >
+                <option value="">전체 (실종/발견/구조)</option>
+                <option value="missing">실종</option>
+                <option value="found">발견</option>
+                <option value="rescue">구조</option>
+              </select>
+
+              {/* 종류 */}
+              <select
+                value={filters.species}
+                onChange={(e) => handleFilterChange('species', e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              >
+                <option value="">전체 종류</option>
+                <option value="dog">강아지</option>
+                <option value="cat">고양이</option>
+                <option value="other">기타</option>
+              </select>
+
+              {/* 상태 */}
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+              >
+                <option value="">전체 상태</option>
+                <option value="active">진행중</option>
+                <option value="resolved">해결됨</option>
+                <option value="closed">종료</option>
+              </select>
+            </div>
+
             {activeFiltersCount > 0 && (
               <button
                 onClick={handleResetFilters}
-                className="text-sm text-gray-600 hover:text-gray-900 underline"
+                className="lg:hidden mt-3 text-sm text-gray-600 hover:text-gray-900 underline"
               >
                 필터 초기화
               </button>
             )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {/* 검색 */}
-            <input
-              type="text"
-              placeholder="이름, 품종, 위치로 검색..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-            />
-
-            {/* 구분 */}
-            <select
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-            >
-              <option value="">전체 (실종/발견)</option>
-              <option value="missing">실종</option>
-              <option value="found">발견</option>
-            </select>
-
-            {/* 종류 */}
-            <select
-              value={filters.species}
-              onChange={(e) => handleFilterChange('species', e.target.value)}
-              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-            >
-              <option value="">전체 종류</option>
-              <option value="dog">강아지</option>
-              <option value="cat">고양이</option>
-              <option value="other">기타</option>
-            </select>
-
-            {/* 상태 */}
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-            >
-              <option value="">전체 상태</option>
-              <option value="active">진행중</option>
-              <option value="resolved">해결됨</option>
-              <option value="closed">종료</option>
-            </select>
           </div>
         </div>
       </section>

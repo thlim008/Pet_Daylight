@@ -111,9 +111,9 @@ class MissingPetViewSet(viewsets.ModelViewSet):
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(pet_name__icontains=search) |
+                Q(name__icontains=search) |
                 Q(breed__icontains=search) |
-                Q(location__icontains=search) |
+                Q(address__icontains=search) |
                 Q(description__icontains=search)
             )
 

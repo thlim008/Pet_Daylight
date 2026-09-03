@@ -680,7 +680,7 @@ function MissingPetMapPage() {
         {selectedReport && (
           <button
             onClick={() => setSelectedReport(null)}
-            className="absolute top-4 right-[25rem] bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-all z-10"
+            className="absolute top-2 right-2 lg:top-4 lg:right-[25rem] bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-all z-10"
           >
             ✕
           </button>
