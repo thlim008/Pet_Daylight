@@ -57,7 +57,7 @@ class HospitalViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = None
     search_fields = ['name', 'address']
-    ordering_fields = ['rating', 'review_count', 'created_at']
+    ordering_fields = ['rating', 'review_count', 'created_at', 'name']
     ordering = ['-rating']
 
     def get_permissions(self):

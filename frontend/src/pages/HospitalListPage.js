@@ -445,38 +445,6 @@ function HospitalListPage() {
         </div>
       </header>
 
-      {/* 검색 위치 */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
-          <div className="flex-1 min-w-[240px] flex gap-2">
-            <input
-              type="text"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
-              placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            />
-            <button
-              onClick={handleLocationSearch}
-              disabled={searchingLocation}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
-            >
-              {searchingLocation ? '검색중...' : '검색'}
-            </button>
-            {searchedPlaceLabel && (
-              <button
-                onClick={handleResetToMyLocation}
-                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
-              >
-                내 위치로
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
       {/* 필터 */}
       <section className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
@@ -564,6 +532,35 @@ function HospitalListPage() {
               <option value="name">이름순</option>
             </select>
           </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
+            <div className="flex-1 min-w-[240px] flex gap-2">
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
+                placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <button
+                onClick={handleLocationSearch}
+                disabled={searchingLocation}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+              >
+                {searchingLocation ? '검색중...' : '검색'}
+              </button>
+              {searchedPlaceLabel && (
+                <button
+                  onClick={handleResetToMyLocation}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                >
+                  내 위치로
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -630,7 +627,7 @@ function HospitalListPage() {
                     </div>
                   )}
                   {/* 배지 */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-2">
+                  <div className="absolute top-3 left-3 flex flex-col items-start gap-2">
                     {getTypeBadge(hospital.type)}
                     {hospital.is_24_hours && (
                       <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg">
