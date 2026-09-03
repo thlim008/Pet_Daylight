@@ -42,6 +42,75 @@ const STAGE_OPTIONS = [
   { value: 'farewell', label: '이별/장례' },
 ];
 
+const FILTER_CONFIG = {
+  users: [
+    {
+      key: 'social',
+      label: '가입방식',
+      options: [
+        { value: '', label: '전체' },
+        { value: 'normal', label: '일반' },
+        { value: 'social', label: '소셜' },
+      ],
+      match: (item, value) => !value || (value === 'social' ? !!item.is_social_account : !item.is_social_account),
+    },
+    {
+      key: 'role',
+      label: '권한',
+      options: [
+        { value: '', label: '전체' },
+        { value: 'normal', label: '일반' },
+        { value: 'admin', label: '관리자' },
+      ],
+      match: (item, value) => !value || (value === 'admin' ? !!item.is_staff : !item.is_staff),
+    },
+  ],
+  'missing-pets': [
+    {
+      key: 'status',
+      label: '상태',
+      options: [
+        { value: '', label: '전체' },
+        { value: 'active', label: '진행중' },
+        { value: 'resolved', label: '해결' },
+        { value: 'closed', label: '종료' },
+      ],
+      match: (item, value) => !value || item.status === value,
+    },
+  ],
+  hospitals: [
+    {
+      key: 'type',
+      label: '유형',
+      options: [
+        { value: '', label: '전체' },
+        { value: 'hospital', label: '동물병원' },
+        { value: 'grooming', label: '미용실' },
+      ],
+      match: (item, value) => !value || item.type === value,
+    },
+  ],
+  guides: [
+    {
+      key: 'species',
+      label: '종류',
+      options: [
+        { value: '', label: '전체' },
+        { value: 'dog', label: '강아지' },
+        { value: 'cat', label: '고양이' },
+        { value: 'other', label: '기타' },
+      ],
+      match: (item, value) => !value || item.species === value,
+    },
+    {
+      key: 'stage',
+      label: '단계',
+      options: [{ value: '', label: '전체' }, ...STAGE_OPTIONS],
+      match: (item, value) => !value || item.stage === value,
+    },
+  ],
+};
+
 const emptyGuide = {
   species: 'dog',
   custom_species_name: '',
@@ -80,6 +149,7 @@ function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterValues, setFilterValues] = useState({});
   const PAGE_SIZE = 20;
 
   // 병원 추가/수정 폼 상태
@@ -464,15 +534,18 @@ function AdminPage() {
     }
   };
 
-  const filteredItems = searchQuery.trim()
-    ? items.filter((item) =>
-        getSearchableText(item)
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(searchQuery.trim().toLowerCase())
-      )
-    : items;
+  const activeFilters = FILTER_CONFIG[activeTab] || [];
+
+  const filteredItems = items.filter((item) => {
+    const matchesFilters = activeFilters.every((f) => f.match(item, filterValues[f.key] || ''));
+    if (!matchesFilters) return false;
+    if (!searchQuery.trim()) return true;
+    return getSearchableText(item)
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase());
+  });
 
   const editableRow = (item) => {
     if (activeTab === 'users') {
@@ -508,7 +581,7 @@ function AdminPage() {
             {TABS.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => { setActiveTab(tab.key); closeAllForms(); setSearchQuery(''); }}
+                onClick={() => { setActiveTab(tab.key); closeAllForms(); setSearchQuery(''); setFilterValues({}); }}
                 className={`px-4 py-3 font-medium whitespace-nowrap transition-all ${
                   activeTab === tab.key
                     ? 'text-amber-600 border-b-2 border-amber-600'
@@ -537,7 +610,7 @@ function AdminPage() {
           )}
         </div>
 
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           <input
             type="text"
             value={searchQuery}
@@ -545,6 +618,18 @@ function AdminPage() {
             placeholder="검색어를 입력하세요"
             className="w-full sm:w-80 px-3 py-2 border border-gray-200 rounded-lg text-sm"
           />
+          {activeFilters.map((f) => (
+            <select
+              key={f.key}
+              value={filterValues[f.key] || ''}
+              onChange={(e) => { setFilterValues({ ...filterValues, [f.key]: e.target.value }); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              {f.options.map((o) => (
+                <option key={o.value} value={o.value}>{f.label}: {o.label}</option>
+              ))}
+            </select>
+          ))}
         </div>
 
         {/* 회원 수정 폼 */}
