@@ -63,9 +63,15 @@ const FILTER_CONFIG = {
       options: [
         { value: '', label: '전체' },
         { value: 'normal', label: '일반' },
+        { value: 'hospital_manager', label: '병원 관리자' },
         { value: 'admin', label: '관리자' },
       ],
-      match: (item, value) => !value || (value === 'admin' ? !!item.is_staff : !item.is_staff),
+      match: (item, value) => {
+        if (!value) return true;
+        if (value === 'admin') return !!item.is_staff;
+        if (value === 'hospital_manager') return !item.is_staff && !!item.is_hospital_manager;
+        return !item.is_staff && !item.is_hospital_manager;
+      },
     },
   ],
   'missing-pets': [
