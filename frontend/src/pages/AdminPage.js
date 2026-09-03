@@ -65,8 +65,8 @@ const FILTER_CONFIG = {
       options: [
         { value: '', label: '전체' },
         { value: 'normal', label: '일반' },
-        { value: 'hospital_manager', label: '병원 관리자' },
-        { value: 'admin', label: '관리자' },
+        { value: 'hospital_manager', label: '관리자' },
+        { value: 'admin', label: '총관리자' },
       ],
       match: (item, value) => {
         if (!value) return true;
@@ -512,10 +512,10 @@ function AdminPage() {
               )}
             </td>
             <td className="px-4 py-3 text-sm whitespace-nowrap">
-              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap mr-1">관리자</span>}
+              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap mr-1">총관리자</span>}
               {item.is_hospital_manager && (
                 <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium whitespace-nowrap">
-                  병원 관리자{item.hospital_manager_scope === 'hospital' ? ' (병원)' : item.hospital_manager_scope === 'grooming' ? ' (미용실)' : ''}
+                  관리자{item.hospital_manager_scope === 'hospital' ? ' (병원)' : item.hospital_manager_scope === 'grooming' ? ' (미용실)' : ''}
                 </span>
               )}
             </td>
@@ -783,7 +783,7 @@ function AdminPage() {
                 checked={userForm.is_staff}
                 onChange={(e) => setUserForm({ ...userForm, is_staff: e.target.checked })}
               />
-              <label htmlFor="isStaff" className="text-sm text-gray-700">관리자 권한 부여</label>
+              <label htmlFor="isStaff" className="text-sm text-gray-700">총관리자 권한 부여</label>
             </div>
             <div className="sm:col-span-2 flex items-center gap-2">
               <input
