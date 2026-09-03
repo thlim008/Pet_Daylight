@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import API from '../services/api';
+import BackButton from '../components/BackButton';
 
 function PetVaccinationPage() {
   const { petId } = useParams();
-  const navigate = useNavigate();
   const [pet, setPet] = useState(null);
   const [vaccinations, setVaccinations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,9 +138,7 @@ function PetVaccinationPage() {
                 {pet && <p className="text-xs text-gray-500">{pet.name}</p>}
               </div>
             </div>
-            <button onClick={() => navigate(-1)} className="px-4 py-2 text-gray-600 hover:text-gray-900">
-              뒤로
-            </button>
+            <BackButton />
           </div>
         </div>
       </header>

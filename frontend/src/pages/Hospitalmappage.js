@@ -647,7 +647,7 @@ function HospitalMapPage() {
     const statusBadge = hospital.is_24_hours
       ? `<span style="display:inline-block; padding:3px 8px; background:#EDE9FE; color:#5B21B6; border-radius:12px; font-size:11px; font-weight:600; margin-left:4px;">24시간</span>`
       : hospital.is_open_now
-      ? `<span style="display:inline-block; padding:3px 8px; background:#D1FAE5; color:#065F46; border-radius:12px; font-size:11px; font-weight:600; margin-left:4px;">진료중</span>`
+      ? `<span style="display:inline-block; padding:3px 8px; background:#D1FAE5; color:#065F46; border-radius:12px; font-size:11px; font-weight:600; margin-left:4px;">운영중</span>`
       : '';
 
     const ratingValue = parseFloat(hospital.rating) || 0;
@@ -1084,7 +1084,7 @@ function HospitalMapPage() {
                   onChange={(e) => handleFilterChange('is_open_now', e.target.checked)}
                   className="w-4 h-4 text-green-600 rounded"
                 />
-                <span className="text-sm font-medium text-gray-700">✅ 지금 진료중</span>
+                <span className="text-sm font-medium text-gray-700">✅ 지금 운영중</span>
               </label>
               <p className="text-xs text-gray-500 ml-6 -mt-2">
                 * DB 등록 병원만 적용
@@ -1116,7 +1116,7 @@ function HospitalMapPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-green-500 rounded-full shadow-md flex-shrink-0"></div>
-                  <span className="text-xs text-gray-600">진료중</span>
+                  <span className="text-xs text-gray-600">운영중</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-red-500 rounded-full shadow-md flex-shrink-0"></div>

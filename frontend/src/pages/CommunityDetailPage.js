@@ -4,6 +4,7 @@ import API from '../services/api';
 import { authAPI } from '../services/api';
 import ImageGallery from '../components/ImageGallery';
 import ShareButtons from '../components/ShareButtons';
+import BackButton from '../components/BackButton';
 
 function CommunityDetailPage() {
   const navigate = useNavigate();
@@ -239,15 +240,7 @@ function CommunityDetailPage() {
               </div>
             </button>
 
-            <button
-              onClick={() => navigate(-1)}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all flex items-center space-x-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>뒤로</span>
-            </button>
+            <BackButton />
           </div>
         </div>
       </header>

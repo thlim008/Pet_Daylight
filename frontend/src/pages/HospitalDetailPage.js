@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '../services/api';
+import BackButton from '../components/BackButton';
 
 
 function HospitalDetailPage() {
@@ -179,15 +180,7 @@ function HospitalDetailPage() {
               </div>
             </button>
 
-            <button
-              onClick={() => navigate(-1)}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all flex items-center space-x-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>뒤로</span>
-            </button>
+            <BackButton />
           </div>
         </div>
       </header>
@@ -206,12 +199,12 @@ function HospitalDetailPage() {
             )}
             {hospital.is_open_now && !hospital.is_24_hours && (
               <span className="px-4 py-2 bg-green-600 text-white rounded-full text-sm font-bold shadow-lg animate-pulse">
-                ✅ 지금 진료중
+                ✅ 지금 운영중
               </span>
             )}
             {!hospital.is_open_now && !hospital.is_24_hours && hospital.opening_hours && Object.keys(hospital.opening_hours).length > 0 && (
               <span className="px-4 py-2 bg-gray-400 text-white rounded-full text-sm font-medium">
-                ⏰ 진료 종료
+                ⏰ 운영 종료
               </span>
             )}
             {!hospital.is_24_hours && (!hospital.opening_hours || Object.keys(hospital.opening_hours).length === 0) && (
