@@ -342,10 +342,10 @@ function AdminPage() {
       case 'users':
         return (
           <>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.nickname || item.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.email || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.phone_number || '-'}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.nickname || item.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.email || '-'}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.phone_number || '-'}</td>
             <td className="px-4 py-3 text-sm whitespace-nowrap">
               {item.is_social_account ? (
                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium whitespace-nowrap">
@@ -363,64 +363,64 @@ function AdminPage() {
       case 'missing-pets':
         return (
           <>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.category_display}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.user?.nickname || item.user?.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.address}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.status_display}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.name}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.category_display}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user?.nickname || item.user?.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-xs">{item.address}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.status_display}</td>
           </>
         );
       case 'missing-pet-comments':
         return (
           <>
             <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-md">{item.content}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.user?.nickname || item.user?.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">제보 #{item.missing_pet}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user?.nickname || item.user?.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">제보 #{item.missing_pet}</td>
           </>
         );
       case 'communities':
         return (
           <>
             <td className="px-4 py-3 text-sm font-medium text-gray-900 truncate max-w-xs">{item.title}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.user?.nickname || item.user?.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.category}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">조회 {item.views || 0}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user?.nickname || item.user?.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.category}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">조회 {item.views || 0}</td>
           </>
         );
       case 'community-comments':
         return (
           <>
             <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-md">{item.content}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.user?.nickname || item.user?.username}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">글 #{item.community}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user?.nickname || item.user?.username}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">글 #{item.community}</td>
           </>
         );
       case 'hospitals':
         return (
           <>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.type === 'hospital' ? '동물병원' : '미용실'}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.name}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.type === 'hospital' ? '동물병원' : '미용실'}</td>
             <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-xs">{item.address}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">⭐ {item.rating || 0}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">⭐ {item.rating || 0}</td>
           </>
         );
       case 'hospital-reviews':
         return (
           <>
             <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-md">{item.content}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.user_name || item.user?.nickname}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">⭐ {item.rating}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user_name || item.user?.nickname}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">⭐ {item.rating}</td>
           </>
         );
       case 'guides':
         return (
           <>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.title}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.title}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
               {item.species === 'dog' ? '강아지' : item.species === 'cat' ? '고양이' : `기타${item.custom_species_name ? ` (${item.custom_species_name})` : ''}`}
             </td>
-            <td className="px-4 py-3 text-sm text-gray-600">{STAGE_OPTIONS.find((s) => s.value === item.stage)?.label || item.stage}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{item.order}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{STAGE_OPTIONS.find((s) => s.value === item.stage)?.label || item.stage}</td>
+            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.order}</td>
           </>
         );
       default:
@@ -850,9 +850,9 @@ function AdminPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     {headers[activeTab].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">관리</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
