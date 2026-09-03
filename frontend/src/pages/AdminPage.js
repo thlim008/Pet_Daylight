@@ -792,11 +792,11 @@ function AdminPage() {
                 checked={userForm.is_hospital_manager}
                 onChange={(e) => setUserForm({ ...userForm, is_hospital_manager: e.target.checked })}
               />
-              <label htmlFor="isHospitalManager" className="text-sm text-gray-700">병원 관리자 권한 부여 (담당 병원/미용실만 관리)</label>
+              <label htmlFor="isHospitalManager" className="text-sm text-gray-700">관리자 권한 부여 (담당 병원/미용실만 관리)</label>
             </div>
             {userForm.is_hospital_manager && (
               <div className="sm:col-span-2 pl-6">
-                <label className="block text-xs font-medium text-gray-600 mb-1">병원 관리자 접근 범위</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">관리자 접근 범위</label>
                 <select
                   value={userForm.hospital_manager_scope}
                   onChange={(e) => setUserForm({ ...userForm, hospital_manager_scope: e.target.value })}
@@ -1016,9 +1016,9 @@ function AdminPage() {
 
             {isFullAdmin && (
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-2">담당 병원 관리자</label>
+                <label className="block text-xs font-medium text-gray-600 mb-2">담당 관리자</label>
                 {hospitalManagers.length === 0 ? (
-                  <p className="text-xs text-gray-400">병원 관리자 권한을 가진 회원이 없습니다. (회원 탭에서 먼저 지정하세요)</p>
+                  <p className="text-xs text-gray-400">관리자 권한을 가진 회원이 없습니다. (회원 탭에서 먼저 지정하세요)</p>
                 ) : (
                   <div className="space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {hospitalManagers.map((m) => (
