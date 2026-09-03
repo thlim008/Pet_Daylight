@@ -12,10 +12,11 @@ import os
 class CommentSerializer(serializers.ModelSerializer):
     """댓글 Serializer"""
     user = UserSimpleSerializer(read_only=True)
-    
+    missing_pet_name = serializers.CharField(source='missing_pet.name', read_only=True)
+
     class Meta:
         model = Comment
-        fields = ['id', 'missing_pet', 'user', 'content', 'created_at', 'updated_at']
+        fields = ['id', 'missing_pet', 'missing_pet_name', 'user', 'content', 'created_at', 'updated_at']
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
 

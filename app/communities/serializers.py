@@ -11,11 +11,12 @@ import os
 class CommunityCommentSerializer(serializers.ModelSerializer):
     """커뮤니티 댓글 Serializer"""
     user = UserSimpleSerializer(read_only=True)
-    
+    community_title = serializers.CharField(source='community.title', read_only=True)
+
     class Meta:
         model = CommunityComment
         fields = [
-            'id', 'community', 'user',
+            'id', 'community', 'community_title', 'user',
             'content', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']

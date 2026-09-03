@@ -890,12 +890,12 @@ function ProfilePage() {
                 myComments.map((comment) => (
                   <div
                     key={comment.id}
-                    onClick={() => navigate(`/communities/${comment.post}`)}
+                    onClick={() => navigate(`/communities/${comment.community}`)}
                     className="p-5 border border-gray-200 rounded-xl hover:border-amber-400 hover:shadow-md transition-all cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-700">
-                        게시글: {comment.post_title || `#${comment.post}`}
+                        게시글: {comment.community_title || `#${comment.community}`}
                       </span>
                       <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
                     </div>
