@@ -238,12 +238,21 @@ function HospitalDetailPage() {
 
         {/* 이미지 */}
         {hospital.image && (
-          <div className="mb-8 rounded-2xl overflow-hidden">
+          <div className="mb-3 rounded-2xl overflow-hidden">
             <img
               src={hospital.image}
               alt={hospital.name}
               className="w-full h-96 object-cover"
             />
+          </div>
+        )}
+        {hospital.images_full_url && hospital.images_full_url.length > 1 && (
+          <div className="grid grid-cols-4 gap-2 mb-8">
+            {hospital.images_full_url.slice(1).map((url, index) => (
+              <div key={index} className="aspect-square rounded-xl overflow-hidden">
+                <img src={url} alt={`${hospital.name} ${index + 2}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
           </div>
         )}
 
