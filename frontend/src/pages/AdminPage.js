@@ -407,6 +407,7 @@ function AdminPage() {
       case 'hospital-reviews':
         return (
           <>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.hospital_name || '-'}</td>
             <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-md">{item.content}</td>
             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.user_name || item.user?.nickname}</td>
             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">⭐ {item.rating}</td>
@@ -435,7 +436,7 @@ function AdminPage() {
     communities: ['ID', '제목', '작성자', '카테고리', '조회수'],
     'community-comments': ['ID', '내용', '작성자', '게시글'],
     hospitals: ['ID', '이름', '유형', '주소', '평점'],
-    'hospital-reviews': ['ID', '내용', '작성자', '평점'],
+    'hospital-reviews': ['ID', '병원', '내용', '작성자', '평점'],
     guides: ['ID', '제목', '종류', '단계', '순서'],
   };
 
