@@ -117,7 +117,7 @@ function HomePage() {
                   </span>
                 </button>
               )}
-              {user?.is_staff && (
+              {(user?.is_staff || user?.is_hospital_manager) && (
                 <button
                   onClick={() => navigate('/admin-panel')}
                   className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all"
@@ -178,7 +178,7 @@ function HomePage() {
           {/* 모바일 드롭다운 메뉴 */}
           {isMobileMenuOpen && (
             <div className="md:hidden mt-3 pt-3 border-t border-gray-200 space-y-2">
-              {user?.is_staff && (
+              {(user?.is_staff || user?.is_hospital_manager) && (
                 <button
                   onClick={() => {
                     navigate('/admin-panel');
