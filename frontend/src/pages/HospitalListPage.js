@@ -19,7 +19,7 @@ function HospitalListPage() {
   // 필터 상태
   const [filters, setFilters] = useState({
     type: '', // hospital, grooming
-    price_range: '', // free, low, medium, high
+    price_range: '', // free, medium
     is_24_hours: '', // true, false
     is_open_now: '', // true, false
     search: '',
@@ -332,9 +332,7 @@ function HospitalListPage() {
   const getPriceRangeBadge = (priceRange) => {
     const badges = {
       'free': <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">무료</span>,
-      'low': <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">저가</span>,
       'medium': <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">일반</span>,
-      'high': <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">고가</span>,
     };
     return badges[priceRange] || null;
   };
@@ -529,9 +527,7 @@ function HospitalListPage() {
             >
               <option value="">전체 가격대</option>
               <option value="free">무료</option>
-              <option value="low">저가</option>
               <option value="medium">일반</option>
-              <option value="high">고가</option>
             </select>
 
             {/* 24시간 운영 */}

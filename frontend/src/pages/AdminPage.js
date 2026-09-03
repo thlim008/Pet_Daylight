@@ -859,9 +859,7 @@ function AdminPage() {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
               >
                 <option value="free">무료</option>
-                <option value="low">저가</option>
                 <option value="medium">일반</option>
-                <option value="high">고가</option>
               </select>
             </div>
             <div className="sm:col-span-2">

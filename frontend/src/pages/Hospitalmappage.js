@@ -7,7 +7,6 @@ function HospitalMapPage() {
   const navigate = useNavigate();
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedHospital, setSelectedHospital] = useState(null);
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
@@ -543,14 +542,9 @@ function HospitalMapPage() {
 
       marker.setMap(kakaoMap);
 
-      // 마커 클릭 이벤트
+      // 마커 클릭 이벤트 - DB 병원도 카카오 장소와 동일하게 마커 위 InfoWindow로 표시
       window.kakao.maps.event.addListener(marker, 'click', () => {
-        // 기존 InfoWindow 닫기
-        if (currentInfoWindow.current) {
-          currentInfoWindow.current.close();
-          currentInfoWindow.current = null;
-        }
-        setSelectedHospital(hospital);
+        showHospitalInfoWindow(hospital, marker, kakaoMap);
         kakaoMap.setCenter(markerPosition);
       });
 
@@ -625,6 +619,108 @@ function HospitalMapPage() {
       console.error('❌ 병원 생성 실패:', error);
       alert('병원 정보를 불러올 수 없습니다. 다시 시도해주세요.');
     }
+  };
+
+  // DB 등록 병원 정보창 표시 (카카오 장소 InfoWindow와 동일한 스타일로 통일)
+  const showHospitalInfoWindow = (hospital, marker, kakaoMap) => {
+    if (currentInfoWindow.current) {
+      currentInfoWindow.current.close();
+    }
+
+    window.copyHospitalInfo = (text, type) => {
+      copyToClipboard(text, type);
+    };
+
+    window.viewHospitalDetail = () => {
+      navigate(`/hospitals/${hospital.id}`);
+    };
+
+    const distance = userLocation
+      ? getDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          parseFloat(hospital.latitude),
+          parseFloat(hospital.longitude)
+        )
+      : null;
+
+    const statusBadge = hospital.is_24_hours
+      ? `<span style="display:inline-block; padding:3px 8px; background:#EDE9FE; color:#5B21B6; border-radius:12px; font-size:11px; font-weight:600; margin-left:4px;">24시간</span>`
+      : hospital.is_open_now
+      ? `<span style="display:inline-block; padding:3px 8px; background:#D1FAE5; color:#065F46; border-radius:12px; font-size:11px; font-weight:600; margin-left:4px;">진료중</span>`
+      : '';
+
+    const ratingValue = parseFloat(hospital.rating) || 0;
+    const filledStars = Math.round(ratingValue);
+    const starsHtml = '★'.repeat(filledStars) + '☆'.repeat(5 - filledStars);
+
+    const content = `
+      <div style="padding:18px; width:280px; min-height:200px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; box-sizing:border-box;">
+        <div style="margin-bottom:8px;">
+          <span style="display:inline-block; padding:3px 8px; background:${hospital.type === 'hospital' ? '#FEE2E2' : '#FCE7F3'}; color:${hospital.type === 'hospital' ? '#991B1B' : '#831843'}; border-radius:12px; font-size:11px; font-weight:600;">
+            ${hospital.type === 'hospital' ? '🏥 병원' : '✂️ 미용'}
+          </span>
+          ${statusBadge}
+        </div>
+        <h3 style="margin:0 0 6px 0; font-weight:700; font-size:15px; color:#111827; word-break:keep-all;">
+          ${hospital.name}
+        </h3>
+        <p style="margin:0 0 10px 0; font-size:12px; color:#F59E0B; font-weight:600;">
+          ${starsHtml} ${ratingValue.toFixed(1)} (리뷰 ${hospital.review_count || 0}개)
+        </p>
+
+        <div style="display:flex; align-items:flex-start; margin:4px 0; gap:6px;">
+          <p style="margin:0; font-size:12px; color:#6B7280; line-height:1.4; flex:1; word-break:keep-all;">
+            📍 ${hospital.address}
+          </p>
+          <button
+            onclick="window.copyHospitalInfo('${(hospital.address || '').replace(/'/g, "\\'")}', '주소')"
+            style="padding:4px 8px; background:#3B82F6; color:white; border:none; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"
+            title="주소 복사"
+          >
+            📋 복사
+          </button>
+        </div>
+
+        ${hospital.phone ? `
+          <div style="display:flex; align-items:center; margin:4px 0; gap:6px;">
+            <p style="margin:0; font-size:12px; color:#6B7280; flex:1;">
+              📞 ${hospital.phone}
+            </p>
+            <button
+              onclick="window.copyHospitalInfo('${hospital.phone}', '전화번호')"
+              style="padding:4px 8px; background:#10B981; color:white; border:none; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"
+              title="전화번호 복사"
+            >
+              📋 복사
+            </button>
+          </div>
+        ` : ''}
+
+        ${distance !== null ? `
+          <p style="margin:10px 0; font-size:13px; color:#3B82F6; font-weight:600;">
+            🚶 현재 위치에서 약 ${(distance / 1000).toFixed(1)}km
+          </p>
+        ` : ''}
+
+        <button
+          onclick="window.viewHospitalDetail()"
+          style="width:100%; padding:12px 16px; background:#111827; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top:5px;"
+          onmouseover="this.style.background='#1F2937'"
+          onmouseout="this.style.background='#111827'"
+        >
+          📝 상세보기 & 리뷰
+        </button>
+      </div>
+    `;
+
+    const infowindow = new window.kakao.maps.InfoWindow({
+      content: content,
+      removable: false
+    });
+
+    infowindow.open(kakaoMap, marker);
+    currentInfoWindow.current = infowindow;
   };
 
   // 카카오맵 장소 정보창 표시
@@ -786,30 +882,6 @@ function HospitalMapPage() {
       alert('복사에 실패했습니다.');
     });
   };
-
-  const renderStars = (rating) => {
-    // rating을 숫자로 변환 (안전 처리)
-    const numRating = parseFloat(rating) || 0;
-    
-    const fullStars = Math.floor(numRating);
-    const hasHalfStar = numRating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-    return (
-      <div className="flex items-center space-x-1">
-        {[...Array(fullStars)].map((_, i) => (
-          <span key={`full-${i}`} className="text-yellow-400 text-lg">★</span>
-        ))}
-        {hasHalfStar && <span className="text-yellow-400 text-lg">★</span>}
-        {[...Array(emptyStars)].map((_, i) => (
-          <span key={`empty-${i}`} className="text-gray-300 text-lg">★</span>
-        ))}
-        <span className="ml-2 text-sm text-gray-600 font-medium">{numRating.toFixed(1)}</span>
-      </div>
-    );
-  };
-
-  const filteredHospitals = getFilteredHospitals();
 
   // ✅ 로딩 조건 수정: searchRadius도 체크
   if ((loading && !map) || !userLocation || searchRadius === null) {
@@ -1077,137 +1149,6 @@ function HospitalMapPage() {
           </div>
         </div>
 
-        {/* 선택된 병원 정보 */}
-        {selectedHospital && (
-          <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto p-4 lg:p-6 max-h-[50vh] lg:max-h-none">
-            <div className="mb-4">
-              {/* 배지 */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedHospital.type === 'hospital' ? (
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                    🏥 동물병원
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">
-                    ✂️ 애견미용
-                  </span>
-                )}
-                {selectedHospital.is_24_hours && (
-                  <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-bold">
-                    24시간
-                  </span>
-                )}
-                {selectedHospital.is_open_now && !selectedHospital.is_24_hours && (
-                  <span className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-bold">
-                    진료중
-                  </span>
-                )}
-              </div>
-
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                {selectedHospital.name}
-              </h2>
-
-              {/* 별점 */}
-              <div className="mb-4">
-                {renderStars(selectedHospital.rating || 0)}
-                <p className="text-xs text-gray-500 mt-1">
-                  리뷰 {selectedHospital.review_count || 0}개
-                </p>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-2 flex items-center justify-between">
-                <span>📍 {selectedHospital.address}</span>
-                <button
-                  onClick={() => copyToClipboard(selectedHospital.address, '주소')}
-                  className="ml-2 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-all font-medium"
-                >
-                  📋 복사
-                </button>
-              </p>
-
-              {selectedHospital.phone && (
-                <p className="text-sm text-gray-600 mb-4 flex items-center justify-between">
-                  <span>📞 {selectedHospital.phone}</span>
-                  <button
-                    onClick={() => copyToClipboard(selectedHospital.phone, '전화번호')}
-                    className="ml-2 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-all font-medium"
-                  >
-                    📋 복사
-                  </button>
-                </p>
-              )}
-
-              {/* 거리 표시 */}
-              {userLocation && (
-                <p className="text-sm font-medium text-blue-600 mb-4">
-                  🚶 현재 위치에서 약 {
-                    (getDistance(
-                      userLocation.latitude,
-                      userLocation.longitude,
-                      parseFloat(selectedHospital.latitude),
-                      parseFloat(selectedHospital.longitude)
-                    ) / 1000).toFixed(1)
-                  }km
-                </p>
-              )}
-
-              {selectedHospital.description && (
-                <p className="text-gray-700 leading-relaxed mb-4 line-clamp-3">
-                  {selectedHospital.description}
-                </p>
-              )}
-
-              {/* 서비스 */}
-              {selectedHospital.services && selectedHospital.services.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs font-bold text-gray-600 mb-2">제공 서비스</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedHospital.services.slice(0, 3).map((service, index) => (
-                      <span 
-                        key={index}
-                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs"
-                      >
-                        {service}
-                      </span>
-                    ))}
-                    {selectedHospital.services.length > 3 && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
-                        +{selectedHospital.services.length - 3}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => navigate(`/hospitals/${selectedHospital.id}`)}
-                  className="w-full px-4 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all"
-                >
-                  상세 정보 보기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 사이드바 닫기 버튼 */}
-        {selectedHospital && (
-          <button
-            onClick={() => {
-              setSelectedHospital(null);
-              // InfoWindow도 닫기
-              if (currentInfoWindow.current) {
-                currentInfoWindow.current.close();
-                currentInfoWindow.current = null;
-              }
-            }}
-            className="absolute top-2 right-2 lg:top-4 lg:right-[25rem] bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-all z-10"
-          >
-            ✕
-          </button>
-        )}
       </div>
     </div>
   );

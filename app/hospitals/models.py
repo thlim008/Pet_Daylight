@@ -14,9 +14,7 @@ class Hospital(models.Model):
 
     PRICE_RANGE_CHOICES = [
         ('free', '무료'),
-        ('low', '저가'),
         ('medium', '일반'),
-        ('high', '고가'),
     ]
 
     type = models.CharField(
