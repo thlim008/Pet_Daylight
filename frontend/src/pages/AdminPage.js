@@ -168,6 +168,10 @@ function AdminPage() {
   const [editingHospitalId, setEditingHospitalId] = useState(null);
   const [hospitalForm, setHospitalForm] = useState(emptyHospital);
   const [openingHours, setOpeningHours] = useState(emptyOpeningHours());
+  const [hospitalExistingImages, setHospitalExistingImages] = useState([]);
+  const [hospitalNewImages, setHospitalNewImages] = useState([]);
+  const [hospitalNewImagePreviews, setHospitalNewImagePreviews] = useState([]);
+  const MAX_HOSPITAL_IMAGES = 5;
 
   // 회원 수정 폼 상태
   const [editingUserId, setEditingUserId] = useState(null);
@@ -209,6 +213,9 @@ function AdminPage() {
   const closeAllForms = () => {
     setShowHospitalForm(false);
     setEditingHospitalId(null);
+    setHospitalExistingImages([]);
+    setHospitalNewImages([]);
+    setHospitalNewImagePreviews([]);
     setEditingUserId(null);
     setEditingUserIsSocial(false);
     setNewPassword('');
@@ -307,6 +314,7 @@ function AdminPage() {
     closeAllForms();
     setHospitalForm(emptyHospital);
     setOpeningHours(emptyOpeningHours());
+    setHospitalExistingImages([]);
     setShowHospitalForm(true);
     loadHospitalManagers();
   };
@@ -328,8 +336,36 @@ function AdminPage() {
       managers: hospital.managers || [],
     });
     setOpeningHours(parseOpeningHoursToState(hospital.opening_hours));
+    setHospitalExistingImages(hospital.images_full_url || []);
     setShowHospitalForm(true);
     loadHospitalManagers();
+  };
+
+  const handleHospitalImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    const remainingSlots = MAX_HOSPITAL_IMAGES - hospitalExistingImages.length - hospitalNewImages.length;
+    if (remainingSlots <= 0) {
+      alert(`최대 ${MAX_HOSPITAL_IMAGES}장까지 업로드 가능합니다.`);
+      e.target.value = '';
+      return;
+    }
+    const filesToAdd = files.slice(0, remainingSlots);
+    setHospitalNewImages((prev) => [...prev, ...filesToAdd]);
+    setHospitalNewImagePreviews((prev) => [...prev, ...filesToAdd.map((f) => URL.createObjectURL(f))]);
+    e.target.value = '';
+  };
+
+  const removeHospitalExistingImage = (index) => {
+    setHospitalExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeHospitalNewImage = (index) => {
+    setHospitalNewImages((prev) => prev.filter((_, i) => i !== index));
+    setHospitalNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const makeHospitalExistingImageThumbnail = (index) => {
+    setHospitalExistingImages((prev) => [prev[index], ...prev.filter((_, i) => i !== index)]);
   };
 
   const handleSaveHospital = async (e) => {
@@ -354,18 +390,25 @@ function AdminPage() {
         ? `https://${website}`
         : website;
 
-      const payload = {
-        ...hospitalForm,
-        website: normalizedWebsite,
-        latitude: Number(hospitalForm.latitude).toFixed(6),
-        longitude: Number(hospitalForm.longitude).toFixed(6),
-        opening_hours: hours,
-      };
-
+      const data = new FormData();
+      data.append('type', hospitalForm.type);
+      data.append('name', hospitalForm.name);
+      data.append('address', hospitalForm.address);
+      data.append('phone', hospitalForm.phone || '');
+      data.append('latitude', Number(hospitalForm.latitude).toFixed(6));
+      data.append('longitude', Number(hospitalForm.longitude).toFixed(6));
+      data.append('price_range', hospitalForm.price_range);
+      data.append('website', normalizedWebsite);
+      data.append('description', hospitalForm.description || '');
+      data.append('is_24_hours', hospitalForm.is_24_hours);
+      data.append('opening_hours', JSON.stringify(hours));
+      hospitalForm.managers.forEach((id) => data.append('managers', id));
+      hospitalNewImages.forEach((file) => data.append('uploaded_images', file));
       if (editingHospitalId) {
-        await API.patch(`/hospitals/${editingHospitalId}/`, payload);
+        data.append('existing_images', JSON.stringify(hospitalExistingImages));
+        await API.patch(`/hospitals/${editingHospitalId}/`, data);
       } else {
-        await API.post('/hospitals/', payload);
+        await API.post('/hospitals/', data);
       }
       closeAllForms();
       loadItems();
@@ -833,6 +876,59 @@ function AdminPage() {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
               />
             </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-2">
+                사진 (최대 {MAX_HOSPITAL_IMAGES}장, 1번째가 대표/썸네일 이미지)
+              </label>
+              {(hospitalExistingImages.length > 0 || hospitalNewImagePreviews.length > 0) && (
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-2">
+                  {hospitalExistingImages.map((url, index) => (
+                    <div key={`existing-${url}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                      <img src={url} alt={`병원 사진 ${index + 1}`} className="w-full h-full object-cover" />
+                      {index === 0 && (
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded">대표</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeHospitalExistingImage(index)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-none flex items-center justify-center"
+                      >
+                        ✕
+                      </button>
+                      {index !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makeHospitalExistingImageThumbnail(index)}
+                          className="absolute bottom-1 left-1 right-1 px-1 py-0.5 bg-black/60 text-white text-[10px] rounded"
+                        >
+                          대표로 설정
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {hospitalNewImagePreviews.map((preview, index) => (
+                    <div key={`new-${index}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                      <img src={preview} alt={`새 사진 ${index + 1}`} className="w-full h-full object-cover" />
+                      {hospitalExistingImages.length === 0 && index === 0 && (
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded">대표</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeHospitalNewImage(index)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-none flex items-center justify-center"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {hospitalExistingImages.length + hospitalNewImages.length < MAX_HOSPITAL_IMAGES && (
+                <input type="file" accept="image/*" multiple onChange={handleHospitalImageChange} className="text-sm" />
+              )}
+            </div>
+
             <div className="sm:col-span-2 flex items-center gap-2">
               <input
                 id="is24"

@@ -112,6 +112,11 @@ class Hospital(models.Model):
         blank=True,
         help_text="웹사이트"
     )
+    images = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="사진 URL 배열 (첫 번째가 대표/썸네일 이미지, 최대 5장)"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
