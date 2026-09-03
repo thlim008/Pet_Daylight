@@ -346,17 +346,17 @@ function AdminPage() {
             <td className="px-4 py-3 text-sm text-gray-600">{item.username}</td>
             <td className="px-4 py-3 text-sm text-gray-600">{item.email || '-'}</td>
             <td className="px-4 py-3 text-sm text-gray-600">{item.phone_number || '-'}</td>
-            <td className="px-4 py-3 text-sm">
+            <td className="px-4 py-3 text-sm whitespace-nowrap">
               {item.is_social_account ? (
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium whitespace-nowrap">
                   🔗 {(item.social_providers || []).map((p) => PROVIDER_LABELS[p] || p).join(', ') || '소셜'}
                 </span>
               ) : (
-                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">일반</span>
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium whitespace-nowrap">일반</span>
               )}
             </td>
-            <td className="px-4 py-3 text-sm">
-              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">관리자</span>}
+            <td className="px-4 py-3 text-sm whitespace-nowrap">
+              {item.is_staff && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium whitespace-nowrap">관리자</span>}
             </td>
           </>
         );
