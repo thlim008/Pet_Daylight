@@ -359,7 +359,10 @@ function ProfilePage() {
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            >
               <img
                 src="/logo.png"
                 alt="Pet Daylight"
@@ -377,14 +380,8 @@ function ProfilePage() {
                 <span className="text-xl font-bold text-gray-900">Pet Daylight</span>
                 <p className="text-xs text-gray-500">프로필 설정</p>
               </div>
-            </div>
+            </button>
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate('/')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
-              >
-                홈으로
-              </button>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all"
@@ -583,199 +580,8 @@ function ProfilePage() {
           )}
         </div>
 
-        {/* 비밀번호 변경 섹션 */}
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">비밀번호 설정</h2>
-              <p className="text-sm text-gray-600">계정 보안을 위해 비밀번호를 관리하세요</p>
-            </div>
-          </div>
-
-          {user.is_social_account && (
-            <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <span className="text-3xl">
-                    {user.social_providers?.includes('kakao') && '💬'}
-                    {user.social_providers?.includes('naver') && '🟢'}
-                    {user.social_providers?.includes('google') && '🔴'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-blue-900 mb-2">소셜 로그인 계정</h3>
-                  <p className="text-sm text-blue-800 mb-3">
-                    이 계정은 <strong>{user.social_providers?.map(p => p.toUpperCase()).join(', ')}</strong> 소셜 로그인으로 가입되었습니다.
-                  </p>
-                  <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <p className="text-xs text-blue-700 mb-2">
-                      <strong>🔒 비밀번호 관리:</strong>
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      소셜 로그인 계정은 Pet Daylight에서 비밀번호를 관리하지 않습니다.
-                      비밀번호를 변경하려면 {user.social_providers?.map(p => p.toUpperCase()).join(', ')}
-                      계정 설정에서 변경해주세요.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {user.can_change_password && (
-            <>
-              {!showPasswordChange ? (
-                <button
-                  onClick={() => setShowPasswordChange(true)}
-                  className="w-full py-3.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
-                >
-                  비밀번호 변경하기
-                </button>
-              ) : (
-                <div className="space-y-4">
-                  {passwordSuccess && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
-                      <p className="text-sm text-green-800 font-medium">
-                        ✅ 비밀번호가 성공적으로 변경되었습니다!
-                      </p>
-                    </div>
-                  )}
-
-                  {passwordError && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                      <p className="text-sm text-red-800 font-medium">
-                        ⚠️ {passwordError}
-                      </p>
-                    </div>
-                  )}
-
-                  <form onSubmit={handlePasswordChange} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        현재 비밀번호
-                      </label>
-                      <PasswordInput
-                        value={passwordData.current_password}
-                        onChange={(e) =>
-                          setPasswordData({ ...passwordData, current_password: e.target.value })
-                        }
-                        required
-                        autoComplete="current-password"
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        새 비밀번호
-                      </label>
-                      <PasswordInput
-                        value={passwordData.new_password}
-                        onChange={(e) =>
-                          setPasswordData({ ...passwordData, new_password: e.target.value })
-                        }
-                        required
-                        autoComplete="new-password"
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                        placeholder="8자 이상, 영문+특수문자 포함"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        새 비밀번호 확인
-                      </label>
-                      <PasswordInput
-                        value={passwordData.new_password_confirm}
-                        onChange={(e) =>
-                          setPasswordData({
-                            ...passwordData,
-                            new_password_confirm: e.target.value,
-                          })
-                        }
-                        required
-                        autoComplete="new-password"
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
-                        placeholder="비밀번호 재입력"
-                      />
-                    </div>
-
-                    <div className="flex space-x-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPasswordChange(false);
-                          setPasswordError('');
-                          setPasswordData({
-                            current_password: '',
-                            new_password: '',
-                            new_password_confirm: '',
-                          });
-                        }}
-                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
-                      >
-                        취소
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={passwordLoading}
-                        className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
-                      >
-                        {passwordLoading ? '변경 중...' : '변경하기'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* 회원탈퇴 */}
-        <div className="bg-white rounded-2xl p-8 border border-red-100 mb-6">
-          <h2 className="text-lg font-bold text-red-600 mb-1">회원탈퇴</h2>
-          <p className="text-sm text-gray-500 mb-4">탈퇴 시 계정 정보가 삭제되며 되돌릴 수 없습니다.</p>
-
-          {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-all"
-            >
-              회원탈퇴 진행
-            </button>
-          ) : (
-            <div className="space-y-3 max-w-sm">
-              <p className="text-sm text-gray-700">
-                정말 탈퇴하시려면 아래 칸에 <span className="font-bold">회원탈퇴</span>를 입력해주세요.
-              </p>
-              <input
-                type="text"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="회원탈퇴"
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-50 outline-none transition-all"
-              />
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deletingAccount || deleteConfirmText !== '회원탈퇴'}
-                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all disabled:opacity-50"
-                >
-                  {deletingAccount ? '처리 중...' : '탈퇴하기'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* 내 활동 섹션 */}
-        <div className="bg-white rounded-2xl p-8 border border-gray-200">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 mb-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">내 활동</h2>
             <p className="text-sm text-gray-600">커뮤니티, 실종 제보, 병원 리뷰 활동을 확인하세요</p>
@@ -1024,6 +830,197 @@ function ProfilePage() {
                   </div>
                 ))
               )}
+            </div>
+          )}
+        </div>
+
+        {/* 비밀번호 변경 섹션 */}
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">비밀번호 설정</h2>
+              <p className="text-sm text-gray-600">계정 보안을 위해 비밀번호를 관리하세요</p>
+            </div>
+          </div>
+
+          {user.is_social_account && (
+            <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <span className="text-3xl">
+                    {user.social_providers?.includes('kakao') && '💬'}
+                    {user.social_providers?.includes('naver') && '🟢'}
+                    {user.social_providers?.includes('google') && '🔴'}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-blue-900 mb-2">소셜 로그인 계정</h3>
+                  <p className="text-sm text-blue-800 mb-3">
+                    이 계정은 <strong>{user.social_providers?.map(p => p.toUpperCase()).join(', ')}</strong> 소셜 로그인으로 가입되었습니다.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 border border-blue-200">
+                    <p className="text-xs text-blue-700 mb-2">
+                      <strong>🔒 비밀번호 관리:</strong>
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      소셜 로그인 계정은 Pet Daylight에서 비밀번호를 관리하지 않습니다.
+                      비밀번호를 변경하려면 {user.social_providers?.map(p => p.toUpperCase()).join(', ')}
+                      계정 설정에서 변경해주세요.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {user.can_change_password && (
+            <>
+              {!showPasswordChange ? (
+                <button
+                  onClick={() => setShowPasswordChange(true)}
+                  className="w-full py-3.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  비밀번호 변경하기
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  {passwordSuccess && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <p className="text-sm text-green-800 font-medium">
+                        ✅ 비밀번호가 성공적으로 변경되었습니다!
+                      </p>
+                    </div>
+                  )}
+
+                  {passwordError && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-sm text-red-800 font-medium">
+                        ⚠️ {passwordError}
+                      </p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        현재 비밀번호
+                      </label>
+                      <PasswordInput
+                        value={passwordData.current_password}
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, current_password: e.target.value })
+                        }
+                        required
+                        autoComplete="current-password"
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        새 비밀번호
+                      </label>
+                      <PasswordInput
+                        value={passwordData.new_password}
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, new_password: e.target.value })
+                        }
+                        required
+                        autoComplete="new-password"
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                        placeholder="8자 이상, 영문+특수문자 포함"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        새 비밀번호 확인
+                      </label>
+                      <PasswordInput
+                        value={passwordData.new_password_confirm}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            new_password_confirm: e.target.value,
+                          })
+                        }
+                        required
+                        autoComplete="new-password"
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all"
+                        placeholder="비밀번호 재입력"
+                      />
+                    </div>
+
+                    <div className="flex space-x-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordChange(false);
+                          setPasswordError('');
+                          setPasswordData({
+                            current_password: '',
+                            new_password: '',
+                            new_password_confirm: '',
+                          });
+                        }}
+                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={passwordLoading}
+                        className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
+                      >
+                        {passwordLoading ? '변경 중...' : '변경하기'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* 회원탈퇴 */}
+        <div className="bg-white rounded-2xl p-8 border border-red-100 mb-6">
+          <h2 className="text-lg font-bold text-red-600 mb-1">회원탈퇴</h2>
+          <p className="text-sm text-gray-500 mb-4">탈퇴 시 계정 정보가 삭제되며 되돌릴 수 없습니다.</p>
+
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-all"
+            >
+              회원탈퇴 진행
+            </button>
+          ) : (
+            <div className="space-y-3 max-w-sm">
+              <p className="text-sm text-gray-700">
+                정말 탈퇴하시려면 아래 칸에 <span className="font-bold">회원탈퇴</span>를 입력해주세요.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="회원탈퇴"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-50 outline-none transition-all"
+              />
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirmText !== '회원탈퇴'}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all disabled:opacity-50"
+                >
+                  {deletingAccount ? '처리 중...' : '탈퇴하기'}
+                </button>
+              </div>
             </div>
           )}
         </div>

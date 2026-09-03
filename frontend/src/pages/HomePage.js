@@ -127,7 +127,7 @@ function HomePage() {
               )}
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
+                className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all"
               >
                 로그아웃
               </button>
@@ -194,7 +194,7 @@ function HomePage() {
                   handleLogout();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
+                className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all"
               >
                 로그아웃
               </button>
