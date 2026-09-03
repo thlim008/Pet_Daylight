@@ -266,7 +266,7 @@ function AdminPage() {
         }
         await API.post(`/accounts/${editingUserId}/set_password/`, { password: newPassword });
       }
-      setItems((prev) => prev.map((u) => (u.id === editingUserId ? res.data : u)));
+      setItems((prev) => prev.map((u) => (u.id === editingUserId ? { ...u, ...res.data } : u)));
       setEditingUserId(null);
       setNewPassword('');
     } catch (err) {
@@ -988,7 +988,7 @@ function AdminPage() {
                     {headers[activeTab].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">관리</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -996,7 +996,7 @@ function AdminPage() {
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                       {renderRow(item)}
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-left whitespace-nowrap">
                         {editableRow(item)}
                         {!(activeTab === 'users' && item.is_staff) && (
                           <button
