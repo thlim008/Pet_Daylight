@@ -984,7 +984,7 @@ function ProfilePage() {
 
         {/* 회원탈퇴 */}
         <div className="bg-white rounded-2xl p-8 border border-red-100 mb-6">
-          <h2 className="text-lg font-bold text-red-600 mb-1">회원탈퇴</h2>
+          <h2 className="text-2xl font-bold text-red-600 mb-1">회원탈퇴</h2>
           <p className="text-sm text-gray-500 mb-4">탈퇴 시 계정 정보가 삭제되며 되돌릴 수 없습니다.</p>
 
           {!showDeleteConfirm ? (
