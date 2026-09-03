@@ -489,7 +489,7 @@ function MissingPetEditPage() {
               {/* 새 이미지 업로드 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  {existingImages.length > 0 ? '추가 사진' : '사진 업로드'} (최대 3장)
+                  {existingImages.length > 0 ? '추가 사진' : '사진 업로드'} (최대 {Math.max(3 - existingImages.length, 0)}장)
                 </label>
                 
                 {imagePreviews.length > 0 && (
