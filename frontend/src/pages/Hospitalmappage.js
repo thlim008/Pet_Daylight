@@ -812,7 +812,7 @@ function HospitalMapPage() {
   const filteredHospitals = getFilteredHospitals();
 
   // ✅ 로딩 조건 수정: searchRadius도 체크
-  if (loading || !userLocation || searchRadius === null) {
+  if ((loading && !map) || !userLocation || searchRadius === null) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
         <div className="text-center">

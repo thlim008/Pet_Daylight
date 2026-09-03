@@ -380,7 +380,7 @@ function MissingPetMapPage() {
     return icons[category] || '📍';
   };
 
-  if (loading || !userLocation) {
+  if ((loading && !map) || !userLocation) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
         <div className="text-center">
