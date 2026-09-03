@@ -373,6 +373,7 @@ function HospitalMapPage() {
 
   // 지도가 이미 떠 있는 상태에서 검색 기준 위치가 바뀌면 지도/마커를 새 위치로 이동
   const moveMapToLocation = (lat, lng) => {
+    console.log('[진단] moveMapToLocation 호출됨. map 존재?', !!map, 'lat/lng:', lat, lng);
     if (!map) return;
     const center = new window.kakao.maps.LatLng(lat, lng);
     map.setCenter(center);
@@ -402,6 +403,7 @@ function HospitalMapPage() {
   };
 
   useEffect(() => {
+    console.log('[진단] userLocation/map 변경 감지. map:', !!map, 'userLocation:', userLocation, 'isFirstMapCenter:', isFirstMapCenter.current);
     if (!map || !userLocation) return;
     if (isFirstMapCenter.current) {
       // initMap이 이미 이 좌표로 지도를 생성했으므로 최초 1회는 건너뜀
@@ -424,8 +426,10 @@ function HospitalMapPage() {
     const places = new window.kakao.maps.services.Places();
     places.keywordSearch(query, (result, status) => {
       setSearchingLocation(false);
+      console.log('[진단] keywordSearch status:', status, 'result:', result);
       if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
         const place = result[0];
+        console.log('[진단] 검색된 place:', place, 'lat:', parseFloat(place.y), 'lng:', parseFloat(place.x));
         setUserLocation({ latitude: parseFloat(place.y), longitude: parseFloat(place.x) });
         setSearchedPlaceLabel(place.place_name);
       } else {
@@ -812,6 +816,7 @@ function HospitalMapPage() {
   const filteredHospitals = getFilteredHospitals();
 
   // ✅ 로딩 조건 수정: searchRadius도 체크
+  console.log('[진단] 렌더링. loading:', loading, 'map 존재?', !!map, 'userLocation:', userLocation, 'searchRadius:', searchRadius);
   if ((loading && !map) || !userLocation || searchRadius === null) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
