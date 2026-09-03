@@ -373,7 +373,6 @@ function HospitalMapPage() {
 
   // 지도가 이미 떠 있는 상태에서 검색 기준 위치가 바뀌면 지도/마커를 새 위치로 이동
   const moveMapToLocation = (lat, lng) => {
-    console.log('[진단] moveMapToLocation 호출됨. map 존재?', !!map, 'lat/lng:', lat, lng);
     if (!map) return;
     const center = new window.kakao.maps.LatLng(lat, lng);
     map.setCenter(center);
@@ -403,7 +402,6 @@ function HospitalMapPage() {
   };
 
   useEffect(() => {
-    console.log('[진단] userLocation/map 변경 감지. map:', !!map, 'userLocation:', userLocation, 'isFirstMapCenter:', isFirstMapCenter.current);
     if (!map || !userLocation) return;
     if (isFirstMapCenter.current) {
       // initMap이 이미 이 좌표로 지도를 생성했으므로 최초 1회는 건너뜀
@@ -426,10 +424,8 @@ function HospitalMapPage() {
     const places = new window.kakao.maps.services.Places();
     places.keywordSearch(query, (result, status) => {
       setSearchingLocation(false);
-      console.log('[진단] keywordSearch status:', status, 'result:', result);
       if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
         const place = result[0];
-        console.log('[진단] 검색된 place:', place, 'lat:', parseFloat(place.y), 'lng:', parseFloat(place.x));
         setUserLocation({ latitude: parseFloat(place.y), longitude: parseFloat(place.x) });
         setSearchedPlaceLabel(place.place_name);
       } else {
@@ -816,7 +812,6 @@ function HospitalMapPage() {
   const filteredHospitals = getFilteredHospitals();
 
   // ✅ 로딩 조건 수정: searchRadius도 체크
-  console.log('[진단] 렌더링. loading:', loading, 'map 존재?', !!map, 'userLocation:', userLocation, 'searchRadius:', searchRadius);
   if ((loading && !map) || !userLocation || searchRadius === null) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
@@ -906,8 +901,40 @@ function HospitalMapPage() {
         </div>
       </header>
 
+      {/* 검색 위치 */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
+          <div className="flex-1 min-w-[240px] flex gap-2">
+            <input
+              type="text"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
+              placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            />
+            <button
+              onClick={handleLocationSearch}
+              disabled={searchingLocation}
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+            >
+              {searchingLocation ? '검색중...' : '검색'}
+            </button>
+            {searchedPlaceLabel && (
+              <button
+                onClick={handleResetToMyLocation}
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+              >
+                내 위치로
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 메인: 지도 + 사이드바 */}
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-136px)]">
         {/* 지도 */}
         <div className="flex-1 relative h-[50vh] lg:h-auto">
           <div id="map" className="w-full h-full"></div>
@@ -930,38 +957,6 @@ function HospitalMapPage() {
               <span className="mr-2">🔍</span>
               필터
             </h3>
-
-            {/* 검색 위치 */}
-            <div className="mb-4 pb-4 border-b-2 border-gray-200">
-              <p className="text-xs font-bold text-gray-600 mb-2">
-                📍 검색 위치: <span className="text-gray-900">{searchedPlaceLabel || '내 위치'}</span>
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
-                  placeholder="지역/장소 검색"
-                  className="flex-1 min-w-0 px-2 py-2 border border-gray-200 rounded-lg text-xs"
-                />
-                <button
-                  onClick={handleLocationSearch}
-                  disabled={searchingLocation}
-                  className="px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {searchingLocation ? '검색중' : '검색'}
-                </button>
-              </div>
-              {searchedPlaceLabel && (
-                <button
-                  onClick={handleResetToMyLocation}
-                  className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
-                >
-                  내 위치로 돌아가기
-                </button>
-              )}
-            </div>
 
             {/* 구분 필터 */}
             <div className="space-y-3 mb-4">

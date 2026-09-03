@@ -137,14 +137,11 @@ function MissingPetMapPage() {
       });
 
       const data = response.data.results || response.data;
-      console.log('[진단] /missing-pets/ 응답:', response.data);
-      console.log('[진단] 파싱된 data 배열 길이:', Array.isArray(data) ? data.length : 'data가 배열 아님', data);
       const validReports = data.filter(r => r.latitude && r.longitude).map(r => ({
         ...r,
         latitude: parseFloat(r.latitude),
         longitude: parseFloat(r.longitude)
       }));
-      console.log('[진단] 위경도 유효한 validReports 길이:', validReports.length);
 
       setReports(validReports);
     } catch (err) {
@@ -406,7 +403,6 @@ function MissingPetMapPage() {
     );
     return distance <= searchRadius;
   });
-  console.log('[진단] userLocation:', userLocation, 'searchRadius:', searchRadius, 'reports 전체:', reports.length, 'nearbyReports:', nearbyReports.length);
 
   if (nearbyReports.length === 0) {
     return (
