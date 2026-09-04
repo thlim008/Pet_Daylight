@@ -108,10 +108,11 @@ class HospitalViewSet(viewsets.ModelViewSet):
         
         # 현재 진료중 필터
         is_open_now = self.request.query_params.get('is_open_now', None)
-        if is_open_now is not None and is_open_now.lower() in ['true', '1', 'yes']:
+        if is_open_now is not None and is_open_now != '':
             # Python 측에서 필터링 (DB 쿼리로는 복잡함)
-            open_hospitals = [h.id for h in queryset if h.is_open_now()]
-            queryset = queryset.filter(id__in=open_hospitals)
+            want_open = is_open_now.lower() in ['true', '1', 'yes']
+            matching_ids = [h.id for h in queryset if h.is_open_now() == want_open]
+            queryset = queryset.filter(id__in=matching_ids)
         
         # 거리 기반 필터 (위치 정보가 있으면)
         latitude = self.request.query_params.get('latitude', None)
