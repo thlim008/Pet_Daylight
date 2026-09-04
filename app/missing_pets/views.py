@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from django.db.models import Q, F
 from .models import MissingPet, Comment
 from .serializers import MissingPetListSerializer, MissingPetDetailSerializer, MissingPetCreateSerializer, MissingPetUpdateSerializer, CommentSerializer
@@ -61,6 +61,12 @@ class MissingPetViewSet(viewsets.ModelViewSet):
     """실종 제보 ViewSet"""
     permission_classes = [IsAuthenticated]
     serializer_class = MissingPetListSerializer
+
+    def get_permissions(self):
+        """QR코드로 들어오는 상세 조회는 비로그인 사용자도 볼 수 있어야 함"""
+        if self.action == 'retrieve':
+            return [AllowAny()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         """액션에 따라 다른 Serializer 사용"""

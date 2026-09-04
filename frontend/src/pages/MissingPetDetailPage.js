@@ -28,6 +28,9 @@ function MissingPetDetailPage() {
   const [posterUrl, setPosterUrl] = useState(null);
 
   const loadCurrentUser = useCallback(async () => {
+    // 비로그인 사용자(QR코드로 들어온 경우 등)는 호출하지 않음 — 401 응답이 전역 인터셉터의
+    // 자동 로그아웃/리다이렉트를 유발해서 비로그인 상세보기 자체가 막혀버리기 때문
+    if (!localStorage.getItem('access_token')) return;
     try {
       const response = await authAPI.getMe();
       setCurrentUser(response.data);

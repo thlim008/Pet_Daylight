@@ -135,11 +135,7 @@ function App() {
         />
         <Route
           path="/missing-pets/:id"
-          element={
-            <PrivateRoute>
-              <MissingPetDetailPage />
-            </PrivateRoute>
-          }
+          element={<MissingPetDetailPage />}
         />
         <Route
           path="/missing-pets/:id/edit"
