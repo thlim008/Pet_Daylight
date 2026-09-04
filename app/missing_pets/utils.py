@@ -355,8 +355,8 @@ def generate_poster_pdf(missing_pet):
     c.setFont(FONT_NORMAL, 11)
     address = missing_pet.address or '정보 없음'
     # 주소 길이 제한
-    if len(address) > 35:
-        address = address[:35] + "..."
+    if len(address) > 28:
+        address = address[:28] + "..."
     c.drawString(text_x + 35*mm, text_y, address)
     
     text_y -= line_spacing
