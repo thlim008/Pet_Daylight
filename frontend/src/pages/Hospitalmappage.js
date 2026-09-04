@@ -19,6 +19,7 @@ function HospitalMapPage() {
   const radiusCircleRef = useRef(null);
   const isFirstMapCenter = useRef(true);
   const kakaoSearchGen = useRef(0); // 겹쳐 도는 카카오 검색 중 최신 것만 결과를 반영하기 위한 세대 번호
+  const loadHospitalsRequestId = useRef(0); // 겹쳐 도는 병원 목록 요청 중 최신 것만 반영하기 위한 요청 번호
   const [locationQuery, setLocationQuery] = useState('');
   const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
   const [searchingLocation, setSearchingLocation] = useState(false);
@@ -40,10 +41,11 @@ function HospitalMapPage() {
     initialize();
   }, []);
 
-  // ✅ 2단계: 위치와 검색반경이 모두 준비되면 병원 로드
+  // ✅ 2단계: 위치와 검색반경이 모두 준비되면 병원 로드 (슬라이더 드래그 중 겹쳐 도는 걸 막기 위해 디바운스)
   useEffect(() => {
     if (userLocation && searchRadius !== null) {
-      loadHospitals();
+      const timer = setTimeout(() => loadHospitals(), 400);
+      return () => clearTimeout(timer);
     }
   }, [userLocation, searchRadius]);
 
@@ -167,7 +169,9 @@ function HospitalMapPage() {
       setLoading(false);
       return;
     }
-    
+
+    const requestId = ++loadHospitalsRequestId.current;
+
     try {
       setLoading(true);
       const params = {
@@ -175,18 +179,19 @@ function HospitalMapPage() {
         longitude: userLocation.longitude,
         radius: Math.min(searchRadius, 20000)
       };
-      
-      
+
       const response = await API.get('/hospitals/', { params });
-      
+      if (requestId !== loadHospitalsRequestId.current) return; // 더 최신 요청이 나갔으면 이 응답은 버림
+
       const data = response.data.results || response.data;
       const validHospitals = data.filter(h => h.latitude && h.longitude);
-      
+
       setHospitals(validHospitals);
     } catch (err) {
+      if (requestId !== loadHospitalsRequestId.current) return;
       console.error('❌ 병원 로드 실패:', err);
     } finally {
-      setLoading(false);
+      if (requestId === loadHospitalsRequestId.current) setLoading(false);
     }
   };
 
