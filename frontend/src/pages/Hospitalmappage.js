@@ -409,7 +409,7 @@ function HospitalMapPage() {
     }
     moveMapToLocation(userLocation.latitude, userLocation.longitude);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, map]);
+  }, [userLocation, map, searchRadius]);
 
   // 검색창에 입력한 지역/장소로 검색 기준 위치 변경
   const handleLocationSearch = () => {
