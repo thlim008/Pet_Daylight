@@ -463,13 +463,6 @@ function HospitalListPage() {
             </button>
 
             <div className="flex items-center space-x-3">
-              {/* ✅ 검색 반경 표시 */}
-              <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-blue-50 rounded-lg">
-                <span className="text-xs text-blue-600">📍 반경</span>
-                <span className="text-sm font-bold text-blue-700">
-                  {searchRadius >= 999999 ? '전국' : `${(searchRadius / 1000).toFixed(0)}km`}
-                </span>
-              </div>
               <button
                 onClick={() => navigate('/profile')}
                 className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
