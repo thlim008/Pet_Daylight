@@ -597,6 +597,23 @@ function HospitalListPage() {
               )}
             </div>
           </div>
+
+          {/* 검색 반경 슬라이더 (이 화면에서만 적용, 알림 설정은 안 바뀜) */}
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+            <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 반경</span>
+            <input
+              type="range"
+              min={1000}
+              max={20000}
+              step={1000}
+              value={Math.min(searchRadius || 1000, 20000)}
+              onChange={(e) => setSearchRadius(Number(e.target.value))}
+              className="flex-1 accent-amber-500"
+            />
+            <span className="text-sm font-bold text-gray-900 whitespace-nowrap w-12 text-right">
+              {searchRadius >= 999999 ? '전국' : `${(searchRadius / 1000).toFixed(0)}km`}
+            </span>
+          </div>
         </div>
       </section>
 
