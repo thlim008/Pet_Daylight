@@ -60,7 +60,10 @@ function MissingPetDetailPage() {
   }, [loadPet, loadCurrentUser]);
 
   const handleStatusChange = async (newStatus) => {
-    if (!window.confirm('상태를 변경하시겠습니까?')) return;
+    const confirmMessage = newStatus === 'resolved'
+      ? '정말로 해결되었나요? 해결 처리 후 30일이 지나면 등록하신 사진이 자동으로 삭제됩니다.'
+      : '상태를 변경하시겠습니까?';
+    if (!window.confirm(confirmMessage)) return;
 
     try {
       await API.patch(`/missing-pets/${id}/update_status/`, { status: newStatus });
