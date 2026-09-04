@@ -293,7 +293,7 @@ function HomePage() {
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">
                 Pet Daylight와 함께하세요
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
                 {/* 실종 제보 카드 */}
                 <div
                   onClick={() => navigate('/missing-pets')}
