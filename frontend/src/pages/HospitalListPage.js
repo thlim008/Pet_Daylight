@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { authAPI } from '../services/api';
@@ -43,6 +43,7 @@ function HospitalListPage() {
   const [locationQuery, setLocationQuery] = useState('');
   const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
   const [searchingLocation, setSearchingLocation] = useState(false);
+  const loadHospitalsRequestId = useRef(0);
   const PAGE_SIZE = 30;
 
   // 필터 상태
@@ -280,6 +281,8 @@ function HospitalListPage() {
       return;
     }
 
+    const requestId = ++loadHospitalsRequestId.current;
+
     try {
       setLoading(true);
       const params = {
@@ -306,8 +309,10 @@ function HospitalListPage() {
       
       
       const response = await API.get('/hospitals/', { params });
-      
-      
+
+      // 이 응답을 기다리는 사이 더 최신 요청이 나갔으면 지금 응답은 버린다
+      if (requestId !== loadHospitalsRequestId.current) return;
+
       let hospitalData = [];
       if (response.data.results) {
         hospitalData = response.data.results;
@@ -343,10 +348,11 @@ function HospitalListPage() {
       setHospitals(sortedHospitals);
       setCurrentPage(1);
     } catch (err) {
+      if (requestId !== loadHospitalsRequestId.current) return;
       console.error('❌ 병원 목록 로드 실패:', err);
       setHospitals([]);
     } finally {
-      setLoading(false);
+      if (requestId === loadHospitalsRequestId.current) setLoading(false);
     }
   }, [filters, userLocation, searchRadius]);
 

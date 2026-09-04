@@ -124,24 +124,29 @@ class HospitalViewSet(viewsets.ModelViewSet):
                 user_lat = float(latitude)
                 user_lon = float(longitude)
                 search_radius = float(radius)
-                
-                # 거리 계산 후 필터링
-                total_count = queryset.count()
-                nearby_hospitals = []
-                
-                for hospital in queryset:
-                    if hospital.latitude and hospital.longitude:
-                        distance = calculate_distance(
-                            user_lat, user_lon,
-                            float(hospital.latitude), float(hospital.longitude)
-                        )
-                        if distance <= search_radius:
-                            nearby_hospitals.append(hospital.id)
-                
-                print(f"📍 거리 필터링: {total_count}개 → {len(nearby_hospitals)}개 (반경 {search_radius/1000}km)")
+
+                # 위도/경도 인덱스를 탈 수 있는 사각형 범위로 후보를 먼저 좁히고,
+                # 정밀한 Haversine 계산은 그 후보군에만 수행한다.
+                # (병원 수가 계속 늘어나는 구조라, 매 요청마다 전체 테이블을 순회하면 느려짐)
+                lat_delta = search_radius / 111000  # 위도 1도 ≈ 111km
+                lon_delta = search_radius / (111000 * math.cos(math.radians(user_lat)) or 1)
+                candidates = queryset.filter(
+                    latitude__gte=user_lat - lat_delta,
+                    latitude__lte=user_lat + lat_delta,
+                    longitude__gte=user_lon - lon_delta,
+                    longitude__lte=user_lon + lon_delta,
+                )
+
+                nearby_hospitals = [
+                    hospital.id for hospital in candidates
+                    if hospital.latitude and hospital.longitude
+                    and calculate_distance(
+                        user_lat, user_lon, float(hospital.latitude), float(hospital.longitude)
+                    ) <= search_radius
+                ]
                 queryset = queryset.filter(id__in=nearby_hospitals)
-            except (ValueError, TypeError) as e:
-                print(f"⚠️ 거리 필터 오류: {e}")
+            except (ValueError, TypeError):
+                pass
 
         return queryset
 
