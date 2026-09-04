@@ -414,8 +414,11 @@ function HospitalMapPage() {
     radiusCircleRef.current = newCircle;
 
     // 기존 마커 제거하고 새 위치 기준으로 카카오 장소 재검색
-    markers.forEach((m) => m.setMap(null));
-    setMarkers([]);
+    // (클로저로 캡처한 markers가 아니라 항상 최신 state를 지우도록 함수형 업데이트 사용)
+    setMarkers(prevMarkers => {
+      prevMarkers.forEach((m) => m.setMap(null));
+      return [];
+    });
     setKakaoPlaces([]);
     searchKakaoPlaces(map, { latitude: lat, longitude: lng });
   };
@@ -492,9 +495,13 @@ function HospitalMapPage() {
   }, [map, userLocation]);
 
   const updateMarkers = () => {
-    // 기존 마커 제거
-    markers.forEach(marker => marker.setMap(null));
-    
+    // 기존 마커 제거 (클로저로 캡처한 markers가 아니라 항상 최신 state를 지움)
+    setMarkers(prevMarkers => {
+      prevMarkers.forEach(marker => marker.setMap(null));
+      return [];
+    });
+
+
     // 필터링된 병원만 마커 생성 (DB 데이터가 있으면)
     if (hospitals.length > 0) {
       const filteredHospitals = getFilteredHospitals();
