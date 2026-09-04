@@ -7,7 +7,10 @@ function PetVisitCreatePage() {
   const { petId, visitId } = useParams();
   const isEditMode = !!visitId;
   const [pet, setPet] = useState(null);
-  const [hospitals, setHospitals] = useState([]);
+  const [hospitalSearchQuery, setHospitalSearchQuery] = useState('');
+  const [hospitalResults, setHospitalResults] = useState([]);
+  const [searchingHospitals, setSearchingHospitals] = useState(false);
+  const [showHospitalDropdown, setShowHospitalDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hospitalInputMode, setHospitalInputMode] = useState('select');
@@ -30,9 +33,17 @@ function PetVisitCreatePage() {
 
   useEffect(() => {
     loadPet();
-    loadHospitals();
+    searchHospitals('');
     if (visitId) loadVisit();
   }, [petId, visitId]);
+
+  // 검색어 입력 시 디바운스해서 재검색
+  useEffect(() => {
+    if (hospitalInputMode !== 'select') return;
+    const timer = setTimeout(() => searchHospitals(hospitalSearchQuery), 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hospitalSearchQuery, hospitalInputMode]);
 
   const loadPet = async () => {
     try {
@@ -43,13 +54,22 @@ function PetVisitCreatePage() {
     }
   };
 
-  const loadHospitals = async () => {
+  const searchHospitals = async (query) => {
     try {
-      const response = await API.get('/hospitals/', { params: { limit: 100 } });
-      setHospitals(response.data.results || response.data);
+      setSearchingHospitals(true);
+      const response = await API.get('/hospitals/', { params: { search: query, limit: 20 } });
+      setHospitalResults(response.data.results || response.data);
     } catch (err) {
-      console.error('병원 목록 로드 실패:', err);
+      console.error('병원 검색 실패:', err);
+    } finally {
+      setSearchingHospitals(false);
     }
+  };
+
+  const handleSelectHospital = (hospital) => {
+    setFormData((prev) => ({ ...prev, hospital: hospital.id }));
+    setHospitalSearchQuery(hospital.name);
+    setShowHospitalDropdown(false);
   };
 
   const loadVisit = async () => {
@@ -69,6 +89,13 @@ function PetVisitCreatePage() {
       });
       if (visit.hospital) {
         setHospitalInputMode('select');
+        // 검색창에 이미 선택된 병원 이름을 표시
+        try {
+          const hospitalRes = await API.get(`/hospitals/${visit.hospital}/`);
+          setHospitalSearchQuery(hospitalRes.data.name);
+        } catch (err) {
+          console.error('병원 정보 로드 실패:', err);
+        }
       } else {
         setHospitalInputMode('manual');
       }
@@ -195,20 +222,41 @@ function PetVisitCreatePage() {
             </div>
 
             {hospitalInputMode === 'select' && (
-              <div>
-                <select
-                  name="hospital"
-                  value={formData.hospital}
-                  onChange={handleChange}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={hospitalSearchQuery}
+                  onChange={(e) => {
+                    setHospitalSearchQuery(e.target.value);
+                    setFormData((prev) => ({ ...prev, hospital: '' }));
+                    setShowHospitalDropdown(true);
+                  }}
+                  onFocus={() => setShowHospitalDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowHospitalDropdown(false), 150)}
+                  placeholder="병원 이름으로 검색하세요"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-                >
-                  <option value="">병원을 선택하세요</option>
-                  {hospitals.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name} {h.address && `- ${h.address}`}
-                    </option>
-                  ))}
-                </select>
+                />
+                {showHospitalDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {searchingHospitals ? (
+                      <p className="px-4 py-3 text-sm text-gray-400">검색 중...</p>
+                    ) : hospitalResults.length > 0 ? (
+                      hospitalResults.map((h) => (
+                        <button
+                          type="button"
+                          key={h.id}
+                          onClick={() => handleSelectHospital(h)}
+                          className="w-full text-left px-4 py-3 hover:bg-amber-50 border-b border-gray-100 last:border-0"
+                        >
+                          <p className="font-medium text-gray-900 text-sm">{h.name}</p>
+                          {h.address && <p className="text-xs text-gray-500">{h.address}</p>}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-4 py-3 text-sm text-gray-400">검색 결과가 없습니다</p>
+                    )}
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-gray-500">
                   목록에 없으면{' '}
                   <button type="button" onClick={() => navigate('/hospitals')} className="text-amber-600 underline">

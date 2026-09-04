@@ -143,11 +143,9 @@ function PetVisitListPage() {
                   <span className="font-bold text-gray-900">{formatCost(visit.cost)}</span>
                 </div>
                 {visit.next_visit_date && (
-                  <div className="mt-2 px-3 py-2 bg-amber-50 rounded-lg">
-                    <p className="text-xs text-amber-700">
-                      📅 다음 방문 예정: {formatDate(visit.next_visit_date)}
-                    </p>
-                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    📅 다음 방문 예정: {formatDate(visit.next_visit_date)}
+                  </p>
                 )}
                 <div className="flex justify-end space-x-2 mt-3 pt-3 border-t border-gray-100">
                   <button
