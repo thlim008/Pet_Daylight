@@ -515,6 +515,20 @@ function HospitalMapPage() {
     // 24시간/진료중 필터는 카카오맵 데이터에 정보가 없으므로 무시
     // (카카오맵 검색 결과는 이런 정보를 제공하지 않음)
 
+    // 카카오 검색의 radius 옵션은 sort:DISTANCE와 함께 쓰면 엄격한 필터가 아니라
+    // 정렬 기준에 가깝게 동작해서 반경 밖 결과가 섞여 나올 수 있음 - 직접 재검증
+    if (userLocation && searchRadius) {
+      filtered = filtered.filter(place => {
+        const distance = getDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          parseFloat(place.latitude),
+          parseFloat(place.longitude)
+        );
+        return distance <= searchRadius;
+      });
+    }
+
     return filtered;
   };
 
