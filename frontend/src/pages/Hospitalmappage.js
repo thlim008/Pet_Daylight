@@ -69,12 +69,13 @@ function HospitalMapPage() {
     }
   }, [userLocation, searchRadius, loading]);
 
-  // 필터 변경 시 마커 재생성
+  // 필터 변경, 지도 생성, DB 병원 목록/카카오 검색 결과 도착 시 마커 재생성
   useEffect(() => {
     if (map) {
       updateMarkers();
     }
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, map, hospitals, kakaoPlaces]);
 
   // ✅ 사용자 설정 로드 (검색 반경) - Promise 반환
   const loadUserSettings = async () => {
