@@ -661,21 +661,29 @@ function MissingPetMapPage() {
               </div>
             </div>
             
-            {/* 검색 반경 정보 */}
+            {/* 검색 반경 정보 (이 화면에서만 적용, 알림 설정은 안 바뀜) */}
             <div className="mt-4 pt-4 border-t-2 border-gray-200">
               <div className="flex items-center space-x-2 mb-2">
                 <div className="w-3 h-3 border-2 border-dashed border-blue-500 rounded-full flex-shrink-0"></div>
                 <span className="text-xs font-medium text-gray-600">검색 반경</span>
               </div>
-              <p className="text-lg font-bold text-blue-600">
-                {searchRadius >= 999999 ? '전국' : `${(searchRadius / 1000).toFixed(0)}km`}
-              </p>
-              <button
-                onClick={() => navigate('/profile')}
-                className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
-              >
-                프로필에서 변경하기
-              </button>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-400">1km</span>
+                <p className="text-lg font-bold text-blue-600">
+                  {searchRadius >= 999999 ? '전국' : `${(searchRadius / 1000).toFixed(0)}km`}
+                </p>
+                <span className="text-xs text-gray-400">20km</span>
+              </div>
+              <input
+                type="range"
+                min={1000}
+                max={20000}
+                step={1000}
+                value={Math.min(searchRadius || 1000, 20000)}
+                onChange={(e) => setSearchRadius(Number(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+              <p className="mt-1 text-[11px] text-gray-400">이 화면에서만 적용돼요</p>
             </div>
           </div>
         </div>
