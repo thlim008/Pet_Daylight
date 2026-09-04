@@ -1,12 +1,45 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../services/api';
+import API, { authAPI } from '../services/api';
 
 function MissingPetListPage() {
   const navigate = useNavigate();
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [userLocation, setUserLocation] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(null);
+
+  const loadUserSettings = async () => {
+    try {
+      const response = await authAPI.getMe();
+      setSearchRadius(response.data.notification_distance || 10000);
+    } catch (err) {
+      console.error('사용자 설정 로드 실패:', err);
+      setSearchRadius(10000);
+    }
+  };
+
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      setUserLocation({ latitude: 36.3504, longitude: 127.3845 });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ latitude, longitude });
+      },
+      () => setUserLocation({ latitude: 36.3504, longitude: 127.3845 }),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  useEffect(() => {
+    loadUserSettings();
+    getUserLocation();
+  }, []);
+
+
   // localStorage에서 필터 복원
   const getInitialFilters = () => {
     try {
@@ -38,42 +71,52 @@ function MissingPetListPage() {
     }
   }, [filters]);
 
+  const loadPetsRequestId = useRef(0);
+
   const loadPets = useCallback(async () => {
+    const requestId = ++loadPetsRequestId.current;
     try {
       setLoading(true);
       const params = {};
-      
+
       if (filters.category) params.category = filters.category;
       if (filters.species) params.species = filters.species;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
-      
+      if (userLocation && searchRadius !== null) {
+        params.latitude = userLocation.latitude;
+        params.longitude = userLocation.longitude;
+        params.radius = searchRadius;
+      }
+
       const response = await API.get('/missing-pets/', { params });
-      
-      
+      if (requestId !== loadPetsRequestId.current) return; // 최신 요청의 응답이 아니면 버림
+
       // 응답이 객체인 경우 (pagination)
       if (response.data.results) {
         setPets(response.data.results);
-      } 
+      }
       // 응답이 배열인 경우
       else if (Array.isArray(response.data)) {
         setPets(response.data);
-      } 
+      }
       // 그 외의 경우
       else {
         console.error('예상치 못한 응답 형식:', response.data);
         setPets([]);
       }
     } catch (err) {
+      if (requestId !== loadPetsRequestId.current) return;
       console.error('⛔ 제보 로드 실패:', err);
       setPets([]);
     } finally {
-      setLoading(false);
+      if (requestId === loadPetsRequestId.current) setLoading(false);
     }
-  }, [filters]);
+  }, [filters, userLocation, searchRadius]);
 
   useEffect(() => {
-    loadPets();
+    const timer = setTimeout(() => loadPets(), 400);
+    return () => clearTimeout(timer);
   }, [loadPets]);
 
   const handleFilterChange = (key, value) => {
@@ -288,6 +331,23 @@ function MissingPetListPage() {
                 필터 초기화
               </button>
             )}
+
+            {/* 검색 반경 슬라이더 (이 화면에서만 적용, 알림 설정은 안 바뀜) */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+              <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 반경</span>
+              <input
+                type="range"
+                min={1000}
+                max={20000}
+                step={1000}
+                value={Math.min(searchRadius || 1000, 20000)}
+                onChange={(e) => setSearchRadius(Number(e.target.value))}
+                className="flex-1 accent-amber-500"
+              />
+              <span className="text-sm font-bold text-gray-900 whitespace-nowrap w-12 text-right">
+                {((searchRadius || 1000) / 1000).toFixed(0)}km
+              </span>
+            </div>
           </div>
         </div>
       </section>

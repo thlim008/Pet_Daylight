@@ -18,6 +18,7 @@ function HospitalMapPage() {
   const myLocationMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
   const isFirstMapCenter = useRef(true);
+  const kakaoSearchGen = useRef(0); // 겹쳐 도는 카카오 검색 중 최신 것만 결과를 반영하기 위한 세대 번호
   const [locationQuery, setLocationQuery] = useState('');
   const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
   const [searchingLocation, setSearchingLocation] = useState(false);
@@ -195,6 +196,10 @@ function HospitalMapPage() {
       return;
     }
 
+    // 이 검색이 도중에 다른 검색(반경/위치 변경 등)으로 대체되면 결과를 버리기 위한 세대 번호
+    const myGen = ++kakaoSearchGen.current;
+    const isStale = () => myGen !== kakaoSearchGen.current;
+
     const places = new window.kakao.maps.services.Places();
     const allPlaces = [];
     const allMarkers = []; // 마커를 즉시 저장
@@ -217,7 +222,9 @@ function HospitalMapPage() {
 
     hospitalKeywords.forEach((keyword, index) => {
       setTimeout(() => {
+        if (isStale()) return;
         places.keywordSearch(keyword, (result, status) => {
+          if (isStale()) return;
           if (status === window.kakao.maps.services.Status.OK) {
             result.forEach(place => {
               // 중복 제거 (같은 ID는 하나만 + 이미 DB에 저장된 곳은 제외)
@@ -264,7 +271,9 @@ function HospitalMapPage() {
 
       groomingKeywords.forEach((keyword, index) => {
         setTimeout(() => {
+          if (isStale()) return;
           places.keywordSearch(keyword, (result, status) => {
+            if (isStale()) return;
             if (status === window.kakao.maps.services.Status.OK) {
               result.forEach(place => {
                 // 중복 제거 (같은 ID는 하나만 + 이미 DB에 저장된 곳은 제외)
@@ -295,11 +304,16 @@ function HospitalMapPage() {
             }
 
             groomingSearchCount++;
-            
+
             // 모든 검색 완료
             if (groomingSearchCount === groomingKeywords.length) {
+              if (isStale()) {
+                // 이 검색이 이미 대체됐으면 지금까지 만든 마커를 지도에서 지우고 버림
+                allMarkers.forEach(m => m.setMap(null));
+                return;
+              }
               setKakaoPlaces(allPlaces);
-              
+
               if (allPlaces.length === 0) {
               }
               
@@ -407,7 +421,11 @@ function HospitalMapPage() {
       isFirstMapCenter.current = false;
       return;
     }
-    moveMapToLocation(userLocation.latitude, userLocation.longitude);
+    // 반경 슬라이더를 드래그하는 동안 매 틱마다 카카오 재검색이 겹쳐 도는 걸 막기 위해 디바운스
+    const timer = setTimeout(() => {
+      moveMapToLocation(userLocation.latitude, userLocation.longitude);
+    }, 400);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, map, searchRadius]);
 

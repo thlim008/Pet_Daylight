@@ -123,6 +123,38 @@ class MissingPetViewSet(viewsets.ModelViewSet):
                 Q(description__icontains=search)
             )
 
+        # 거리 기반 필터 (위치 정보가 있으면)
+        latitude = self.request.query_params.get('latitude')
+        longitude = self.request.query_params.get('longitude')
+        radius = self.request.query_params.get('radius')
+
+        if latitude and longitude and radius:
+            try:
+                user_lat = float(latitude)
+                user_lon = float(longitude)
+                search_radius = float(radius)
+
+                # 위도/경도 인덱스를 탈 수 있는 사각형 범위로 후보를 먼저 좁히고,
+                # 정밀한 Haversine 계산은 그 후보군에만 수행한다.
+                lat_delta = search_radius / 111000  # 위도 1도 ≈ 111km
+                lon_delta = search_radius / (111000 * math.cos(math.radians(user_lat)) or 1)
+                candidates = queryset.filter(
+                    latitude__gte=user_lat - lat_delta,
+                    latitude__lte=user_lat + lat_delta,
+                    longitude__gte=user_lon - lon_delta,
+                    longitude__lte=user_lon + lon_delta,
+                )
+
+                nearby_ids = [
+                    mp.id for mp in candidates
+                    if calculate_distance(
+                        user_lat, user_lon, float(mp.latitude), float(mp.longitude)
+                    ) <= search_radius
+                ]
+                queryset = queryset.filter(id__in=nearby_ids)
+            except (ValueError, TypeError):
+                pass
+
         return queryset.order_by('-created_at')
 
     def perform_create(self, serializer):

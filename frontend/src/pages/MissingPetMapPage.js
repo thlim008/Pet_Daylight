@@ -293,7 +293,10 @@ function MissingPetMapPage() {
       isFirstMapCenter.current = false;
       return;
     }
-    moveMapToLocation(userLocation.latitude, userLocation.longitude);
+    const timer = setTimeout(() => {
+      moveMapToLocation(userLocation.latitude, userLocation.longitude);
+    }, 400);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, map, searchRadius]);
 
