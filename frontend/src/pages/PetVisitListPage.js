@@ -47,6 +47,14 @@ function PetVisitListPage() {
     return new Intl.NumberFormat('ko-KR').format(cost) + '원';
   };
 
+  const getDaysUntilDue = (dueDate) => {
+    if (!dueDate) return null;
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
   const handleDelete = async (visitId) => {
     if (!window.confirm('진료 기록을 삭제하시겠습니까?')) return;
     try {
@@ -90,6 +98,24 @@ function PetVisitListPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+        {/* 다가오는 방문 예정 */}
+        {visits.some(v => {
+          const days = getDaysUntilDue(v.next_visit_date);
+          return days !== null && days <= 30 && days >= 0;
+        }) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+            <h3 className="font-bold text-amber-800 mb-2">⏰ 다가오는 방문 예정</h3>
+            {visits.filter(v => {
+              const days = getDaysUntilDue(v.next_visit_date);
+              return days !== null && days <= 30 && days >= 0;
+            }).map(v => (
+              <div key={v.id} className="text-sm text-amber-700">
+                {v.purpose} ({v.hospital_name || '병원'}): {v.next_visit_date} ({getDaysUntilDue(v.next_visit_date)}일 후)
+              </div>
+            ))}
+          </div>
+        )}
+
         {visits.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
             <p className="text-5xl mb-4">🏥</p>
@@ -104,7 +130,9 @@ function PetVisitListPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {visits.map((visit) => (
+            {visits.map((visit) => {
+              const daysUntil = getDaysUntilDue(visit.next_visit_date);
+              return (
               <div
                 key={visit.id}
                 onClick={() => {}}
@@ -131,9 +159,16 @@ function PetVisitListPage() {
                       </p>
                     )}
                   </div>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                    {visit.purpose}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                      {visit.purpose}
+                    </span>
+                    {daysUntil !== null && daysUntil <= 7 && daysUntil >= 0 && (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                        ⚠️ {daysUntil}일 후 방문
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {visit.notes && (
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2">{visit.notes}</p>
@@ -162,7 +197,8 @@ function PetVisitListPage() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
