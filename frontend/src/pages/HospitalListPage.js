@@ -464,12 +464,6 @@ function HospitalListPage() {
 
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate('/profile')}
-                className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
-              >
-                ⚙️ 설정
-              </button>
-              <button
                 onClick={() => navigate('/hospitals/map')}
                 className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all"
               >
