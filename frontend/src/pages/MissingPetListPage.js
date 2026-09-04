@@ -8,6 +8,9 @@ function MissingPetListPage() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [searchRadius, setSearchRadius] = useState(null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [searchedPlaceLabel, setSearchedPlaceLabel] = useState(null);
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   const loadUserSettings = async () => {
     try {
@@ -38,6 +41,33 @@ function MissingPetListPage() {
     loadUserSettings();
     getUserLocation();
   }, []);
+
+  const handleLocationSearch = () => {
+    const query = locationQuery.trim();
+    if (!query) return;
+    if (!window.kakao?.maps?.services) {
+      alert('지도 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    setSearchingLocation(true);
+    const places = new window.kakao.maps.services.Places();
+    places.keywordSearch(query, (result, status) => {
+      setSearchingLocation(false);
+      if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+        const place = result[0];
+        setUserLocation({ latitude: parseFloat(place.y), longitude: parseFloat(place.x) });
+        setSearchedPlaceLabel(place.place_name);
+      } else {
+        alert('검색 결과가 없습니다. 다른 검색어로 시도해보세요.');
+      }
+    });
+  };
+
+  const handleResetToMyLocation = () => {
+    setSearchedPlaceLabel(null);
+    setLocationQuery('');
+    getUserLocation();
+  };
 
 
   // localStorage에서 필터 복원
@@ -331,6 +361,36 @@ function MissingPetListPage() {
                 필터 초기화
               </button>
             )}
+
+            {/* 검색 위치 */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-gray-500 whitespace-nowrap">📍 검색 위치: <span className="font-medium text-gray-900">{searchedPlaceLabel || '내 위치'}</span></span>
+              <div className="flex-1 min-w-[240px] flex gap-2">
+                <input
+                  type="text"
+                  value={locationQuery}
+                  onChange={(e) => setLocationQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(); }}
+                  placeholder="지역/장소 검색 (예: 강남역, 서울시 종로구)"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+                <button
+                  onClick={handleLocationSearch}
+                  disabled={searchingLocation}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {searchingLocation ? '검색중...' : '검색'}
+                </button>
+                {searchedPlaceLabel && (
+                  <button
+                    onClick={handleResetToMyLocation}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                  >
+                    내 위치로
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* 검색 반경 슬라이더 (이 화면에서만 적용, 알림 설정은 안 바뀜) */}
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
