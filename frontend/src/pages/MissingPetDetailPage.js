@@ -302,7 +302,7 @@ function MissingPetDetailPage() {
               </div>
             </button>
 
-            <BackButton />
+            <BackButton to={currentUser ? undefined : '/login'} />
           </div>
         </div>
       </header>
@@ -534,25 +534,37 @@ function MissingPetDetailPage() {
                   댓글 {pet.comments?.length || 0}
                 </h3>
 
-                {/* 댓글 작성 */}
-                <form onSubmit={handleCommentSubmit} className="mb-6">
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="댓글을 입력하세요..."
-                    rows="3"
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all resize-none"
-                  />
-                  <div className="flex justify-end mt-2">
+                {/* 댓글 작성 (비로그인은 조회만 가능) */}
+                {currentUser ? (
+                  <form onSubmit={handleCommentSubmit} className="mb-6">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="댓글을 입력하세요..."
+                      rows="3"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-amber-400 focus:ring-4 focus:ring-amber-50 outline-none transition-all resize-none"
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        type="submit"
+                        disabled={submittingComment || !comment.trim()}
+                        className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {submittingComment ? '등록 중...' : '댓글 작성'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="mb-6 flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl">
+                    <span className="text-sm text-gray-500">댓글을 작성하려면 로그인하세요.</span>
                     <button
-                      type="submit"
-                      disabled={submittingComment || !comment.trim()}
-                      className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => navigate('/login')}
+                      className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-all"
                     >
-                      {submittingComment ? '등록 중...' : '댓글 작성'}
+                      로그인
                     </button>
                   </div>
-                </form>
+                )}
 
                 {/* 댓글 목록 */}
                 <div className="space-y-4">
