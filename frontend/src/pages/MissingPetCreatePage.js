@@ -62,7 +62,14 @@ function MissingPetCreatePage() {
   // 내 반려동물 선택 시 종/품종/이름/사진을 폼에 자동으로 채움
   const handleSelectMyPet = async (petId) => {
     setSelectedPetId(petId);
-    if (!petId) return;
+
+    // "직접 입력할게요"로 되돌리면 자동으로 채웠던 내용은 다시 비운다
+    if (!petId) {
+      setFormData(prev => ({ ...prev, species: 'dog', breed: '', name: '' }));
+      setImages([]);
+      setImagePreviews([]);
+      return;
+    }
 
     const pet = myPets.find((p) => String(p.id) === String(petId));
     if (!pet) return;
@@ -74,8 +81,8 @@ function MissingPetCreatePage() {
       name: pet.name || prev.name,
     }));
 
-    // 프로필 사진이 있고 아직 첨부한 사진이 없으면 자동으로 첨부
-    if (pet.profile_image && images.length === 0) {
+    // 선택한 반려동물의 프로필 사진으로 교체(다른 펫을 골랐을 때도 이전 자동첨부 사진이 안 남게)
+    if (pet.profile_image) {
       setLoadingPetPhoto(true);
       try {
         const res = await fetch(pet.profile_image);
