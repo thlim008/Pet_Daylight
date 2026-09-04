@@ -229,7 +229,7 @@ function HomePage() {
           </h1>
 
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 mb-8 sm:mb-10 md:mb-12 px-4">
-            우리 동네 실종 제보를 확인하고, 커뮤니티와 함께 소중한 가족을 찾아주세요
+            우리 동네 실종 제보를 확인하고 소중한 가족을 찾아주세요
           </p>
 
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
@@ -307,22 +307,6 @@ function HomePage() {
                   </h3>
                   <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
                     실종 정보를 등록하고 공유하세요
-                  </p>
-                </div>
-
-                {/* 커뮤니티 카드 */}
-                <div
-                  onClick={() => navigate('/communities')}
-                  className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
-                >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
-                    <span className="text-xl sm:text-2xl">💬</span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
-                    커뮤니티
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
-                    반려동물 관련 정보와 경험을 나누는 따뜻한 커뮤니티
                   </p>
                 </div>
 
