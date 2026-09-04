@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authAPI } from '../services/api';
+import API, { authAPI } from '../services/api';
 import NotificationDropdown from '../components/NotificationDropdown';
 
 function HomePage() {
@@ -10,6 +10,13 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('features');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [communityEnabled, setCommunityEnabled] = useState(false);
+
+  useEffect(() => {
+    API.get('/communities/settings/')
+      .then((res) => setCommunityEnabled(!!res.data.is_enabled))
+      .catch((err) => console.error('커뮤니티 설정 로드 실패:', err));
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.clear();
@@ -293,7 +300,7 @@ function HomePage() {
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">
                 Pet Daylight와 함께하세요
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${communityEnabled ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'} gap-4 sm:gap-6 md:gap-8`}>
                 {/* 실종 제보 카드 */}
                 <div
                   onClick={() => navigate('/missing-pets')}
@@ -309,6 +316,24 @@ function HomePage() {
                     실종 정보를 등록하고 공유하세요
                   </p>
                 </div>
+
+                {/* 커뮤니티 카드 (관리자가 활성화했을 때만) */}
+                {communityEnabled && (
+                  <div
+                    onClick={() => navigate('/communities')}
+                    className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer h-full min-h-[200px] flex flex-col"
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
+                      <span className="text-xl sm:text-2xl">💬</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
+                      커뮤니티
+                    </h3>
+                    <p className="text-sm sm:text-base text-gray-600 flex-grow break-keep">
+                      반려동물 관련 정보와 경험을 나누는 따뜻한 커뮤니티
+                    </p>
+                  </div>
+                )}
 
                 {/* 내 펫 관리 카드 */}
                 <div

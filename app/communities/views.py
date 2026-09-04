@@ -1,11 +1,33 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from django.db.models import Q, F
-from .models import Community, CommunityComment
+from .models import Community, CommunityComment, CommunitySettings
 from .serializers import CommunitySerializer, CommunityCommentSerializer
 from app.notifications.models import Notification
+
+
+class CommunitySettingsView(APIView):
+    """커뮤니티 기능 노출 여부 조회/변경 (홈 화면 카드 온오프용)"""
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        settings_obj = CommunitySettings.get_solo()
+        return Response({'is_enabled': settings_obj.is_enabled})
+
+    def patch(self, request):
+        if not request.user.is_staff:
+            return Response({'error': '총관리자만 변경할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        settings_obj = CommunitySettings.get_solo()
+        settings_obj.is_enabled = bool(request.data.get('is_enabled'))
+        settings_obj.save()
+        return Response({'is_enabled': settings_obj.is_enabled})
 
 
 class CommunityViewSet(viewsets.ModelViewSet):

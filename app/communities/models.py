@@ -2,6 +2,29 @@ from django.db import models
 from django.conf import settings
 
 
+class CommunitySettings(models.Model):
+    """커뮤니티 기능 노출 여부 (홈 화면 카드 온/오프) - 싱글턴"""
+
+    is_enabled = models.BooleanField(
+        default=False,
+        help_text="메인 화면에 커뮤니티 카드를 노출할지 여부"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'community_settings'
+        verbose_name = '커뮤니티 설정'
+        verbose_name_plural = '커뮤니티 설정'
+
+    def __str__(self):
+        return f"커뮤니티 노출: {'켜짐' if self.is_enabled else '꺼짐'}"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class Community(models.Model):
     """커뮤니티 게시글 모델"""
     

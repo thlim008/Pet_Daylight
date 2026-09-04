@@ -143,6 +143,8 @@ function AdminPage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isFullAdmin, setIsFullAdmin] = useState(false);
+  const [communityEnabled, setCommunityEnabled] = useState(false);
+  const [savingCommunityToggle, setSavingCommunityToggle] = useState(false);
   const [myHospitalManagerScope, setMyHospitalManagerScope] = useState('both');
   const [hospitalManagers, setHospitalManagers] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
@@ -204,6 +206,26 @@ function AdminPage() {
     };
     checkAdmin();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!isFullAdmin) return;
+    API.get('/communities/settings/')
+      .then((res) => setCommunityEnabled(!!res.data.is_enabled))
+      .catch((err) => console.error('커뮤니티 설정 로드 실패:', err));
+  }, [isFullAdmin]);
+
+  const toggleCommunity = async () => {
+    setSavingCommunityToggle(true);
+    try {
+      const res = await API.patch('/communities/settings/', { is_enabled: !communityEnabled });
+      setCommunityEnabled(!!res.data.is_enabled);
+    } catch (err) {
+      console.error('커뮤니티 설정 변경 실패:', err);
+      alert('설정 변경에 실패했습니다.');
+    } finally {
+      setSavingCommunityToggle(false);
+    }
+  };
 
   const closeAllForms = () => {
     setShowHospitalForm(false);
@@ -696,6 +718,26 @@ function AdminPage() {
             ))}
           </div>
         </div>
+
+        {isFullAdmin && (
+          <div className="mb-6 flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-900">커뮤니티 기능</p>
+              <p className="text-xs text-gray-500">메인 화면에 커뮤니티 카드를 노출합니다</p>
+            </div>
+            <button
+              onClick={toggleCommunity}
+              disabled={savingCommunityToggle}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 ${
+                communityEnabled
+                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {communityEnabled ? '켜짐' : '꺼짐'}
+            </button>
+          </div>
+        )}
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
