@@ -579,12 +579,6 @@ function MissingPetMapPage() {
 
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate('/profile')}
-                className="px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
-              >
-                ⚙️ 거리 설정
-              </button>
-              <button
                 onClick={() => navigate('/missing-pets')}
                 className="px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
               >
