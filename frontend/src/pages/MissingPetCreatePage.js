@@ -24,6 +24,9 @@ function MissingPetCreatePage() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
   const [searchingLocation, setSearchingLocation] = useState(false);
+  const [myPets, setMyPets] = useState([]);
+  const [selectedPetId, setSelectedPetId] = useState('');
+  const [loadingPetPhoto, setLoadingPetPhoto] = useState(false);
 
   useEffect(() => {
     // 프로필에서 전화번호 가져오기
@@ -40,10 +43,53 @@ function MissingPetCreatePage() {
         console.error('프로필 로드 실패:', err);
       }
     };
+    const loadMyPets = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        const response = await API.get('/lifecycles/pets/', { params: { is_active: true } });
+        setMyPets(response.data.results || response.data || []);
+      } catch (err) {
+        console.error('내 반려동물 목록 로드 실패:', err);
+      }
+    };
     loadUserPhone();
+    loadMyPets();
     // 컴포넌트 마운트 시 현재 위치 자동 가져오기
     getCurrentLocation();
   }, []);
+
+  // 내 반려동물 선택 시 종/품종/이름/사진을 폼에 자동으로 채움
+  const handleSelectMyPet = async (petId) => {
+    setSelectedPetId(petId);
+    if (!petId) return;
+
+    const pet = myPets.find((p) => String(p.id) === String(petId));
+    if (!pet) return;
+
+    setFormData(prev => ({
+      ...prev,
+      species: pet.species || prev.species,
+      breed: pet.breed || prev.breed,
+      name: pet.name || prev.name,
+    }));
+
+    // 프로필 사진이 있고 아직 첨부한 사진이 없으면 자동으로 첨부
+    if (pet.profile_image && images.length === 0) {
+      setLoadingPetPhoto(true);
+      try {
+        const res = await fetch(pet.profile_image);
+        const blob = await res.blob();
+        const file = new File([blob], `${pet.name || 'pet'}.jpg`, { type: blob.type || 'image/jpeg' });
+        setImages([file]);
+        setImagePreviews([URL.createObjectURL(file)]);
+      } catch (err) {
+        console.error('반려동물 사진 가져오기 실패:', err);
+      } finally {
+        setLoadingPetPhoto(false);
+      }
+    }
+  };
 
   const getCurrentLocation = () => {
   setLoadingLocation(true);
@@ -352,6 +398,30 @@ function MissingPetCreatePage() {
       {/* 폼 */}
       <main className="max-w-4xl mx-auto px-6 py-12">
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* 내 반려동물에서 가져오기 */}
+          {myPets.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                내 반려동물에서 가져오기
+              </label>
+              <select
+                value={selectedPetId}
+                onChange={(e) => handleSelectMyPet(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="">직접 입력할게요</option>
+                {myPets.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.name} ({pet.species === 'dog' ? '강아지' : pet.species === 'cat' ? '고양이' : '기타'}{pet.breed ? ` · ${pet.breed}` : ''})
+                  </option>
+                ))}
+              </select>
+              {loadingPetPhoto && (
+                <p className="text-xs text-gray-500 mt-2">사진을 불러오는 중...</p>
+              )}
+            </div>
+          )}
+
           {/* 카테고리 */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-3">
