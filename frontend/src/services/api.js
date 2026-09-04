@@ -4,6 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 const API = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 45000, // 타임아웃 없으면 네트워크가 멈췄을 때 요청이 영원히 안 끝나고 "등록중..."에 걸림
 });
 
 // 요청 인터셉터: 모든 요청에 토큰 추가

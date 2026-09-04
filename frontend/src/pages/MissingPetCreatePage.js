@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import KakaoMap from '../components/KakaoMap';
 import { formatPhoneInput, isValidPhone } from '../utils/phone';
+import { compressImageIfLarge } from '../utils/imageCompression';
 
 function MissingPetCreatePage() {
   const navigate = useNavigate();
@@ -226,18 +227,21 @@ function MissingPetCreatePage() {
     });
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (files.length + images.length > 5) {
       alert('이미지는 최대 5장까지 업로드할 수 있습니다.');
       return;
     }
 
-    setImages([...images, ...files]);
+    // 큰 사진(3MB 초과)만 리사이즈/압축 - 실패해도 원본으로 자동 대체되니 안전함
+    const processedFiles = await Promise.all(files.map(compressImageIfLarge));
+
+    setImages([...images, ...processedFiles]);
 
     // 미리보기 생성
-    const newPreviews = files.map(file => URL.createObjectURL(file));
+    const newPreviews = processedFiles.map(file => URL.createObjectURL(file));
     setImagePreviews([...imagePreviews, ...newPreviews]);
   };
 
@@ -351,7 +355,9 @@ function MissingPetCreatePage() {
       
       // 에러 메시지 표시
       let errorMsg = '제보 등록에 실패했습니다.';
-      if (err.response?.data) {
+      if (err.code === 'ECONNABORTED') {
+        errorMsg = '네트워크가 느리거나 연결이 끊겨서 등록에 실패했습니다. 사진 개수를 줄이거나 다시 시도해주세요.';
+      } else if (err.response?.data) {
         const errors = err.response.data;
         const errorDetails = Object.entries(errors)
           .map(([key, value]) => `${key}: ${value}`)
